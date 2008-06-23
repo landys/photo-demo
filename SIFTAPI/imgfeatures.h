@@ -3,7 +3,7 @@ Functions and structures for dealing with image features
 
 Copyright (C) 2006  Rob Hess <hess@eecs.oregonstate.edu>
 
-@version 1.1.1-20070330
+@version 1.1.1-20070913
 */
 
 #ifndef IMGFEATURES_H
@@ -16,7 +16,6 @@ enum feature_type
 {
 	FEATURE_OXFD,
 	FEATURE_LOWE,
-	FEATURE_PCA,
 };
 
 /** FEATURE_FWD_MATCH <BR> FEATURE_BCK_MATCH <BR> FEATURE_MDL_MATCH */
@@ -33,10 +32,8 @@ enum feature_match_type
 #define FEATURE_LOWE_COLOR CV_RGB(255,0,255)
 
 /** max feature descriptor length */
-#define FEATURE_MAX_D 39*39*2
+#define FEATURE_MAX_D 128
 
-//PCA descr ize
-#define PCASIZE 36
 
 /**
 Structure to represent an affine invariant image feature.  The fields
@@ -55,9 +52,8 @@ struct feature
 	double ori;                    /**< orientation of a Lowe-style feature */
 	int d;                         /**< descriptor length */
 	double descr[FEATURE_MAX_D];   /**< descriptor */
-	double PCAdescr[PCASIZE];      //  PCA descriptor
 	int type;                      /**< feature type, OXFD or LOWE */
-	int class1;                     /**< all-purpose feature class */
+	int category;                  /**< all-purpose feature category */
 	struct feature* fwd_match;     /**< matching feature from forward image */
 	struct feature* bck_match;     /**< matching feature from backmward image */
 	struct feature* mdl_match;     /**< matching feature from model */
@@ -75,11 +71,11 @@ code provided by David Lowe.
 
 @param filename location of a file containing image features
 @param type determines how features are input.  If \a type is FEATURE_OXFD,
-	the input file is treated as if it is from the code provided by the VGG
-	at Oxford: http://www.robots.ox.ac.uk:5000/~vgg/research/affine/index.html
-	<BR><BR>
-	If \a type is FEATURE_LOWE, the input file is treated as if it is from
-	David Lowe's SIFT code: http://www.cs.ubc.ca/~lowe/keypoints  
+the input file is treated as if it is from the code provided by the VGG
+at Oxford: http://www.robots.ox.ac.uk:5000/~vgg/research/affine/index.html
+<BR><BR>
+If \a type is FEATURE_LOWE, the input file is treated as if it is from
+David Lowe's SIFT code: http://www.cs.ubc.ca/~lowe/keypoints  
 @param feat pointer to an array in which to store imported features
 
 @return Returns the number of features imported from filename or -1 on error

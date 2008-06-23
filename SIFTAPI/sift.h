@@ -1,6 +1,6 @@
 /**@file
 Functions for detecting SIFT image features.
-//
+
 For more information, refer to:
 
 Lowe, D.  Distinctive image features from scale-invariant keypoints.
@@ -13,7 +13,7 @@ used in commercial products without a license from the University of
 British Columbia.  For more information, refer to the file LICENSE.ubc
 that accompanied this distribution.
 
-@version 1.1.1-20070330
+@version 1.1.1-20070913
 */
 
 #ifndef SIFT_H
@@ -97,8 +97,6 @@ struct feature;
 #define feat_detection_data(f) ( (struct detection_data*)(f->feature_data) )
 
 
-
-
 /*************************** Function Prototypes *****************************/
 
 /**
@@ -142,6 +140,6 @@ pixel values in the range [0, 1]
 */
 extern int _sift_features( IplImage* img, struct feature** feat, int intvls,
 						  double sigma, double contr_thr, int curv_thr,
-						  int img_dbl, int descr_width, int descr_hist_bins);
+						  int img_dbl, int descr_width, int descr_hist_bins );
 
 #endif

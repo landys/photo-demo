@@ -3,7 +3,7 @@ Functions and structures for dealing with image features
 
 Copyright (C) 2006  Rob Hess <hess@eecs.oregonstate.edu>
 
-@version 1.1.1-20070330
+@version 1.1.1-20070913
 */
 
 #include "utils.h"
@@ -23,8 +23,7 @@ int export_lowe_features( char*, struct feature*, int );
 void draw_lowe_features( IplImage*, struct feature*, int );
 void draw_lowe_feature( IplImage*, struct feature*, CvScalar );
 
-int export_pca_features( char*, struct feature*, int );
-extern char img_file_name[30];
+
 /*
 Reads image features from file.  The file should be formatted as from
 the code provided by the Visual Geometry Group at Oxford:
@@ -100,8 +99,6 @@ int export_features( char* filename, struct feature* feat, int n )
 	case FEATURE_LOWE:
 		r = export_lowe_features( filename, feat, n );
 		break;
-	case FEATURE_PCA:
-		r = export_pca_features( filename,feat, n );
 	default:
 		fprintf( stderr, "Warning: export_features(): unrecognized feature" \
 				"type, %s, line %d\n", __FILE__, __LINE__ );
@@ -227,7 +224,7 @@ int import_oxfd_features( char* filename, struct feature** features )
 	}
 
 
-	f = (feature*) calloc( n, sizeof(struct feature) );
+	f = (feature*)calloc( n, sizeof(struct feature) );
 	for( i = 0; i < n; i++ )
 	{
 		/* read affine region parameters */
@@ -260,7 +257,7 @@ int import_oxfd_features( char* filename, struct feature** features )
 		}
 
 		f[i].scl = f[i].ori = 0;
-		f[i].class1 = 0;
+		f[i].category = 0;
 		f[i].fwd_match = f[i].bck_match = f[i].mdl_match = NULL;
 		f[i].mdl_pt.x = f[i].mdl_pt.y = -1;
 		f[i].feature_data = NULL;
@@ -433,7 +430,7 @@ int import_lowe_features( char* filename, struct feature** features )
 		return -1;
 	}
 
-	f = (feature*) calloc( n, sizeof(struct feature) );
+	f = (feature*)calloc( n, sizeof(struct feature) );
 	for( i = 0; i < n; i++ )
 	{
 		/* read affine region parameters */
@@ -465,7 +462,7 @@ int import_lowe_features( char* filename, struct feature** features )
 		}
 
 		f[i].a = f[i].b = f[i].c = 0;
-		f[i].class1 = 0;
+		f[i].category = 0;
 		f[i].fwd_match = f[i].bck_match = f[i].mdl_match = NULL;
 		f[i].mdl_pt.x = f[i].mdl_pt.y = -1;
 	}
@@ -498,63 +495,38 @@ http://www.cs.ubc.ca/~lowe/keypoints/
 */
 int export_lowe_features( char* filename, struct feature* feat, int n )
 {
-	return 0;
-//	int i, j, d;
-////	fprintf( stderr, "ddd" );
-//	if( n <= 0 )
-//	{
-//		fprintf( stderr, "Warning: feature count %d, %s, line %s\n",
-//				n, __FILE__, __LINE__ );
-//		return 1;
-//	}
-//	
-//
-//
-//	d = feat[0].d;
-////	fprintf( file, "%d %d\n", n, d );
-////	fprintf( stderr, "%d %d\n", n, d);
-//	for( i = 0; i < n; i++ )
-//	{
-//		fprintf( file, "%s_%d %f %f %f %f ",img_file_name, i, feat[i].y, feat[i].x,
-//				feat[i].scl, feat[i].ori );	
-//	//	fprintf( file, "%s_%d ",img_file_name, i);
-//		for( j = 0; j < 36; j++ )
-//			
-//			fprintf( file, "%f ", (feat[i].PCAdescr[j]) );
-//		
-//		fprintf( file, "\n" );
-//	}
-//	return 0;
-}
-
-int export_pca_features( char* filename, struct feature* feat, int n )
-{
 	FILE* file;
 	int i, j, d;
+
 	if( n <= 0 )
 	{
 		fprintf( stderr, "Warning: feature count %d, %s, line %s\n",
 				n, __FILE__, __LINE__ );
 		return 1;
 	}
-	if( ! ( file = fopen( filename, "a" ) ) )
+	if( ! ( file = fopen( filename, "w" ) ) )
 	{
 		fprintf( stderr, "Warning: error opening %s, %s, line %d\n",
 				filename, __FILE__, __LINE__ );
 		return 1;
 	}
+
 	d = feat[0].d;
 	fprintf( file, "%d %d\n", n, d );
 	for( i = 0; i < n; i++ )
 	{
-		fprintf( file, "%f %f %f %f\n", feat[i].y, feat[i].x,
-				feat[i].scl, feat[i].ori );	
-		for( j = 0; j < PCASIZE; j++ )
-			
-			fprintf( file, "%f ", (feat[i].PCAdescr[j]) );
-		
+		fprintf( file, "%f %f %f %f", feat[i].y, feat[i].x,
+				feat[i].scl, feat[i].ori );
+		for( j = 0; j < d; j++ )
+		{
+			/* write 20 descriptor values per line */
+			if( j % 20 == 0 )
+				fprintf( file, "\n" );
+			fprintf( file, " %d", (int)(feat[i].descr[j]) );
+		}
 		fprintf( file, "\n" );
 	}
+
 	if( fclose(file) )
 	{
 		fprintf( stderr, "Warning: file close error, %s, line %d\n",
@@ -564,6 +536,8 @@ int export_pca_features( char* filename, struct feature* feat, int n )
 
 	return 0;
 }
+
+
 /*
 Draws Lowe-type features
 
