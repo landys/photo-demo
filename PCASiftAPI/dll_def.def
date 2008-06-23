@@ -1,0 +1,13 @@
+LIBRARY	"PCA_Sift_API"
+
+
+DESCRIPTION     '(c)Tang Rui'
+
+EXPORTS
+
+                FuncInDll
+                TTRR
+                _sift_features
+                initialeigs
+                export_features
+                ShowSift

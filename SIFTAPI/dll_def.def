@@ -1,0 +1,9 @@
+LIBRARY	"PCA_Sift_API"
+
+
+DESCRIPTION     '(c)Tang Rui'
+
+EXPORTS
+
+                export_features
+                ShowSift
