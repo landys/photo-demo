@@ -224,7 +224,12 @@ namespace PhotoDemo
             {
                 imgDbl = 1;
             }
-            ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileForIndex.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text));
+            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileForIndex.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == 0)
+            {
+                MessageBox.Show("Create SIFT error.");
+                btnCreateIndex.Enabled = true;
+                return;
+            }
             string file = indexFilePre + ++indexCount;
             try
             {
@@ -342,7 +347,13 @@ namespace PhotoDemo
             {
                 imgDbl = 1;
             }
-            ServiceApi.showSift(imgsForMatchFile.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text));
+            if (ServiceApi.showSift(imgsForMatchFile.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == 0)
+            {
+                MessageBox.Show("Create SIFT error.");
+                btnMatch.Enabled = true;
+                return;
+            }
+
             sw.Stop();
             lblGeneratingKeypointsTime.Text = sw.ElapsedMilliseconds + "ms";
 

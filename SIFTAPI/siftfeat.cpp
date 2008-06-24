@@ -45,53 +45,10 @@ int descr_width = SIFT_DESCR_WIDTH;
 int descr_hist_bins = SIFT_DESCR_HIST_BINS;
 char* imagenamefile  = "e:\\imagename.txt";
 
-char   *replace(char   *source,   char   *sub,   char   *rep)   
-{   
-  char   *result;   
-  /*pc1   是复制到结果result的扫描指针*/
-  /*pc2   是扫描source 的辅助指针*/
-  /*pc3   寻找子串时,为检查变化中的source是否与子串相等,是指向sub的扫描指针*/
-  /*找到匹配后,为了复制到结果串,是指向rep的扫描指针*/
-  char   *pc1,   *pc2,   *pc3;          
-  int   isource,   isub,   irep;   
-  isub   =  strlen(sub);     /*对比字符串的长度*/
-  irep   =  strlen(rep);     /*替换字符串的长度*/
-  isource=  strlen(source);  /*源字符串的长度*/  
-  if(NULL == *sub)     
-   return strdup(source);   
-
-  result   = (char *)malloc(( (irep > isub) ? (float)strlen(source) / isub* irep+ 1:isource ) * sizeof(char));
-  pc1   =   result;
-  while(*source   !=   NULL)   
-  {   
-      pc2   =   source;   
-      pc3   =   sub; 
-      while(*pc2   ==   *pc3   &&   *pc3   !=   NULL   &&   *pc2   !=   NULL)   
-          pc2++,   pc3++;  
-   
-      if(NULL   ==   *pc3)   
-      {   
-          pc3   =   rep;  
-          while(*pc3   !=   NULL)   
-              *pc1++   =   *pc3++;   
-          pc2--;   
-          source   =   pc2;   
-
-      }   
-      else 
-          *pc1++ = *source;   
-      source++; 
-  }          
-  *pc1   =   NULL;         
-  return   result;
-
-}
-
-
-/********************************** Main *************************************/
-
-
-extern "C" __declspec(dllexport) void ShowSift(char* imagenamefile, char* out_file_name, int img_dbl, double contr_thr)
+/**
+ * This interface provides SIFT algorithm implementation. Returns 1 if success, 0 if fail.
+**/
+extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_file_name, int img_dbl, double contr_thr)
 {
 	IplImage* img;
 	struct feature* features;
@@ -99,21 +56,15 @@ extern "C" __declspec(dllexport) void ShowSift(char* imagenamefile, char* out_fi
 	FILE * imageset = fopen(imagenamefile, "rt");
 	FILE* outfile = fopen(out_file_name,"w");
 	char imagename[255];
+	int re = 0;
 
-	while(fgets(imagename, 255, imageset) != NULL )
+	while(fgets(imagename, 255, imageset) != NULL)
 	{
-		int index = 0;
-		while (imagename[index] != '\n' && imagename[index] != '\0') index++;
+		int i = 0;
+		for (i=0; imagename[i] != '\n' && imagename[i] != '\r' && imagename[i] != '\0'; ++i); // loop stop here
+		imagename[i] = '\0';
 
-		if (imagename[index] == '\n') imagename[index] = '\0';
-
-		index = 0;
-		while (imagename[index] != '\r' && imagename[index] != '\0') index++;
-
-		if (imagename[index] == '\r') imagename[index] = '\0';
-
-
-		char   *imagetype=strrchr(imagename,'.');
+/*		char   *imagetype=strrchr(imagename,'.');
 
 		if(stricmp(imagetype, ".bmp") != 0)
 		{
@@ -126,15 +77,14 @@ extern "C" __declspec(dllexport) void ShowSift(char* imagenamefile, char* out_fi
 			strcpy(imagename,pp);
 
 		}
-
+*/
 		img = cvLoadImage( imagename, 1 );
 		//	fprintf( stderr, "unable to load image from %s", img_file_name );
 
-		if( ! img )
+		if(img == NULL)
 		{
-			fprintf( stderr, "unable to load image from %sasdf\n", imagename );
-			getchar();
-			exit( 1 );
+			fprintf(stderr, "unable to load image from %s\n", imagename);
+			return 0;
 		}
 
 		n = _sift_features( img, &features, intvls, sigma, contr_thr, curv_thr,
@@ -156,14 +106,17 @@ extern "C" __declspec(dllexport) void ShowSift(char* imagenamefile, char* out_fi
 		cvReleaseImage(&img);
 
 		free(features);
+		re = 1;
 	}
 	fclose(imageset);
 	fclose(outfile);
+
+	return re;
 }
 /*
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd ) 
 {
-	ShowSift("imgsForIndex.txt", "output.txt");
+	showSift("imgsForIndex.txt", "output.txt");
 }
 */
 
