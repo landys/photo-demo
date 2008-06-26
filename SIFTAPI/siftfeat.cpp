@@ -23,19 +23,19 @@ Version: 1.1.1-20070330
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
-#include "Magick++.h"
-using namespace std;
-using namespace Magick;
+//#include <iostream>
+//#include "Magick++.h"
+//using namespace std;
+//using namespace Magick;
 
 /******************************** Globals ************************************/
 
-extern char img_file_name[30] = "e:\\22\\1.jpg";
-char* out_file_name  = "c:\\≤‚ ‘\\6x_pca3042.txt";
-char* img_file_name2 = "..\\10003.bmp";
-char* out_file_name2  = "..\\10003.sift";
-char dirpath[30] = "c:\\22\\";
-int display = 0;
+//extern char img_file_name[30] = "e:\\22\\1.jpg";
+//char* out_file_name  = "c:\\≤‚ ‘\\6x_pca3042.txt";
+//char* img_file_name2 = "..\\10003.bmp";
+//char* out_file_name2  = "..\\10003.sift";
+//char dirpath[30] = "c:\\22\\";
+//int display = 0;
 int intvls = SIFT_INTVLS;
 double sigma = SIFT_SIGMA;
 double contr_thr = SIFT_CONTR_THR;
@@ -43,7 +43,7 @@ int curv_thr = SIFT_CURV_THR;
 int img_dbl = SIFT_IMG_DBL;
 int descr_width = SIFT_DESCR_WIDTH;
 int descr_hist_bins = SIFT_DESCR_HIST_BINS;
-char* imagenamefile  = "e:\\imagename.txt";
+//char* imagenamefile  = "e:\\imagename.txt";
 
 /**
  * This interface provides SIFT algorithm implementation. Returns 1 if success, 0 if fail.
