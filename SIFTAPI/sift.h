@@ -20,6 +20,7 @@ that accompanied this distribution.
 #define SIFT_H
 
 #include "cxcore.h"
+#include <stdio.h>
 
 /******************************** Structures *********************************/
 
@@ -109,7 +110,7 @@ detected features are stored in the array pointed to by \a feat.
 @return Returns the number of features stored in \a feat or -1 on failure
 @see _sift_features()
 */
-extern int sift_features( IplImage* img, struct feature** feat );
+extern int sift_features( IplImage* img, struct feature** feat,  FILE* fpLog );
 
 
 
@@ -140,6 +141,6 @@ pixel values in the range [0, 1]
 */
 extern int _sift_features( IplImage* img, struct feature** feat, int intvls,
 						  double sigma, double contr_thr, int curv_thr,
-						  int img_dbl, int descr_width, int descr_hist_bins );
+						  int img_dbl, int descr_width, int descr_hist_bins, FILE* fpLog );
 
 #endif

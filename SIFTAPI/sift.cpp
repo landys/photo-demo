@@ -23,6 +23,7 @@ that accompanied this distribution.
 
 #include <cxcore.h>
 #include <cv.h>
+#include <time.h>
 
 /************************* Local Function Prototypes *************************/
 
@@ -72,11 +73,11 @@ detected features are stored in the array pointed to by \a feat.
 @return Returns the number of features stored in \a feat or -1 on failure
 @see _sift_features()
 */
-int sift_features( IplImage* img, struct feature** feat )
+int sift_features( IplImage* img, struct feature** feat,  FILE* fpLog )
 {
 	return _sift_features( img, feat, SIFT_INTVLS, SIFT_SIGMA, SIFT_CONTR_THR,
 							SIFT_CURV_THR, SIFT_IMG_DBL, SIFT_DESCR_WIDTH,
-							SIFT_DESCR_HIST_BINS );
+							SIFT_DESCR_HIST_BINS, fpLog );
 }
 
 
@@ -108,7 +109,7 @@ detected features are stored in the array pointed to by \a feat.
 */
 int _sift_features( IplImage* img, struct feature** feat, int intvls,
 				   double sigma, double contr_thr, int curv_thr,
-				   int img_dbl, int descr_width, int descr_hist_bins )
+				   int img_dbl, int descr_width, int descr_hist_bins, FILE* fpLog  )
 {
 	IplImage* init_img;
 	IplImage*** gauss_pyr, *** dog_pyr;
@@ -124,25 +125,48 @@ int _sift_features( IplImage* img, struct feature** feat, int intvls,
 		fatal_error( "NULL pointer error, %s, line %d",  __FILE__, __LINE__ );
 
 	/* build scale space pyramid; smallest dimension of top level is ~4 pixels */
+	long bt = clock();
 	init_img = create_init_img( img, img_dbl, sigma );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
+
 	octvs = log( (double)MIN( init_img->width, init_img->height ) ) / log(2.0) - 2;
+	bt = clock();
 	gauss_pyr = build_gauss_pyr( init_img, octvs, intvls, sigma );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
+
+	bt = clock();
 	dog_pyr = build_dog_pyr( gauss_pyr, octvs, intvls );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
 
 	storage = cvCreateMemStorage( 0 );
+	bt = clock();
 	features = scale_space_extrema( dog_pyr, octvs, intvls, contr_thr,
 		curv_thr, storage );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
+	bt = clock();
 	calc_feature_scales( features, sigma, intvls );
-	if( img_dbl )
+	fprintf(fpLog, "%-7ld ", clock() - bt);
+
+	if( img_dbl ) {
+		bt = clock();
 		adjust_for_img_dbl( features );
+		fprintf(fpLog, "%-7ld ", clock() - bt);
+	}
+	bt = clock();
 	calc_feature_oris( features, gauss_pyr );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
+	bt = clock();
 	compute_descriptors( features, gauss_pyr, descr_width, descr_hist_bins );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
 
 	/* sort features by decreasing scale and move from CvSeq to array */
+	bt = clock();
 	cvSeqSort( features, (CvCmpFunc)feature_cmp, NULL );
+	
 	n = features->total;
 	*feat = (feature*)calloc( n, sizeof(struct feature) );
 	*feat = (feature*)cvCvtSeqToArray( features, *feat, CV_WHOLE_SEQ );
+	fprintf(fpLog, "%-7ld ", clock() - bt);
 	for( i = 0; i < n; i++ )
 	{
 		free( (*feat)[i].feature_data );
