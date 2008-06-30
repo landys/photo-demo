@@ -109,13 +109,12 @@ extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_fil
 
 			fprintf( outfile, "\n" );
 		}
-		fprintf(logFile, "All sift time: %ldms ", clock() - abt);
-
 		cvReleaseImage(&img);
 
 		free(features);
 		re = 1;
 	}
+	fprintf(logFile, "All sift time: %ld ms\n", clock() - abt);
 	fclose(imageset);
 	fclose(outfile);
 	fclose(logFile);
