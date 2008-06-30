@@ -23,6 +23,7 @@ Version: 1.1.1-20070330
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 //#include <iostream>
 //#include "Magick++.h"
 //using namespace std;
@@ -44,20 +45,23 @@ int img_dbl = SIFT_IMG_DBL;
 int descr_width = SIFT_DESCR_WIDTH;
 int descr_hist_bins = SIFT_DESCR_HIST_BINS;
 //char* imagenamefile  = "e:\\imagename.txt";
+char* logFileName = "data\\sift.log";
 
 /**
- * This interface provides SIFT algorithm implementation. Returns 1 if success, 0 if fail.
+ * This interface provides SIFT algorithm implementation. Returns number of keypoints if success, -1 if fail.
 **/
 extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_file_name, int img_dbl, double contr_thr)
 {
 	IplImage* img;
 	struct feature* features;
-	int n = 0, i, j;
+	int n = -1, i, j;
 	FILE * imageset = fopen(imagenamefile, "rt");
 	FILE* outfile = fopen(out_file_name,"w");
+	FILE* logFile = fopen(logFileName, "a");
 	char imagename[255];
-	int re = 0;
 
+	long abt = clock();
+	fprintf(logFile, "\ncreate_init_img build_gauss_pyr build_dog_pyr scale_space_extrema calc_feature_scales adjust_for_img_dbl calc_feature_oris compute_descriptors sort_features total_sift_time features\n");
 	while(fgets(imagename, 255, imageset) != NULL)
 	{
 		int i = 0;
@@ -87,9 +91,11 @@ extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_fil
 			return 0;
 		}
 
+		long bt = clock();
 		n = _sift_features( img, &features, intvls, sigma, contr_thr, curv_thr,
 			img_dbl, descr_width, descr_hist_bins );
-		fprintf( stderr, "Found %d features.\n", n);
+		fprintf(logFile, "%-7ld ", clock() - bt);
+		fprintf(logFile, "%d\n", n);
 
 		for( i = 0; i < n; i++ )
 		{
@@ -102,21 +108,22 @@ extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_fil
 
 			fprintf( outfile, "\n" );
 		}
+		fprintf(logFile, "All sift time: %ldms ", clock() - abt);
 
 		cvReleaseImage(&img);
 
 		free(features);
-		re = 1;
 	}
 	fclose(imageset);
 	fclose(outfile);
+	fclose(logFile);
 
-	return re;
+	return n;
 }
 /*
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd ) 
 {
-	showSift("imgsForIndex.txt", "output.txt");
+	showSift("imgsForMatch.txt", "output.txt", 1, 0.04);
 }
 */
 

@@ -444,7 +444,9 @@ int main(int nargs, char **args){
 
 	//printf("%lf\n", computeAlpha("index36"));
 	//outputIndexFile("index36", "index.txt");
-	query("keypointMatch", "index3", "output.txt");
+	query("E:\\projects\\photodemo\\codes\\trunk\\bin\\Debug\\data\\keypointMatch", 
+		"E:\\projects\\photodemo\\codes\\trunk\\bin\\Debug\\data\\indexes\\index2", 
+		"E:\\projects\\photodemo\\codes\\trunk\\bin\\Debug\\data\\output.txt");
 	//queryInner("keypointMatch", "index36", optParameters, "output.txt");
 }
 
