@@ -224,7 +224,7 @@ namespace PhotoDemo
             {
                 imgDbl = 1;
             }
-            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileForIndex.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == 0)
+            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileForIndex.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
             {
                 MessageBox.Show("Create SIFT error.");
                 btnCreateIndex.Enabled = true;
@@ -347,7 +347,7 @@ namespace PhotoDemo
             {
                 imgDbl = 1;
             }
-            if (ServiceApi.showSift(imgsForMatchFile.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == 0)
+            if (ServiceApi.showSift(imgsForMatchFile.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
             {
                 MessageBox.Show("Create SIFT error.");
                 btnMatch.Enabled = true;
