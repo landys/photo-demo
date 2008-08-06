@@ -130,7 +130,7 @@ extern "C" __declspec(dllexport) int siftImage(const char* imagename, const char
 			features[i].scl, features[i].ori );
 		for( j = 0; j < 128; j++ )
 
-			fprintf( outfile, "%f ", ((int)features[i].descr[j] ));
+			fprintf( outfile, "%d ", ((int)features[i].descr[j] ));
 
 		fprintf( outfile, "\n" );
 	}

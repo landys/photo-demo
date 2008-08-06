@@ -35,6 +35,7 @@
 #include <Windows.h>
 #include <cmath>
 #include <TCHAR.H>
+#include "LSHMain.h"
 using namespace std;
 
 using std::map;
@@ -49,14 +50,7 @@ using std::string;
 PPointT *dataSetPoints = NULL;
 // Number of points in the data set.
 IntT nPoints = 0;
-// The dimension of the points.
-IntT pointsDimension = 128;
 
-double parameterR = 50;
-
-IntT parameterK = 16;
-
-IntT parameterL = 40;
 
 // The value of parameter R (a near neighbor of a point <q> is any
 // point <p> from the data set that is the within distance
@@ -417,8 +411,6 @@ int* getBucketFromDisk(FILE* fp, int hIndex, Uns32T hValue, int& bucketSize);
 PPointT getPointFromDataset(FILE* datasetFile, int index);
 string getPictureId(FILE* fp, int index);
 double computeAlpha(string indexFileName);
-extern "C" __declspec(dllexport) void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR = parameterR, double inputW = PARAMETER_W_DEFAULT, int inputK = parameterK, int inputL = parameterL);
-extern "C" __declspec(dllexport) void query(char* queryFileStr, char* indexNameStr, char* outputFileStr);
 void outputIndexFile(string indexFileName, string outputTextFileName);
 
 /*

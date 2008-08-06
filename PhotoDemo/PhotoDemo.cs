@@ -429,5 +429,10 @@ namespace PhotoDemo
             return ret;
         }
 
+        private void ImageDemo_Load(object sender, EventArgs e)
+        {
+
+        }
+
     }
 }

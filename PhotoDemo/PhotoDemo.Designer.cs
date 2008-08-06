@@ -459,6 +459,7 @@
             this.MaximizeBox = false;
             this.Name = "ImageDemo";
             this.Text = "ImageDemo";
+            this.Load += new System.EventHandler(this.ImageDemo_Load);
             this.grpIndex.ResumeLayout(false);
             this.grpIndex.PerformLayout();
             this.parameters.ResumeLayout(false);
