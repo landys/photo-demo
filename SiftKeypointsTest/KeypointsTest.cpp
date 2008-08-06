@@ -74,9 +74,9 @@ int testKeypointsByDifferentArguments(int argc, char **argv)
 	FILE* reFile = fopen(argv[2], "w");
 	fprintf(reFile, "sn      contrThr imgDbl fileSize keypoints sift_time total_fileSize total_keypoints total_sift_time file_name\n");
 
-	for (imgDbl=1; imgDbl<=1; ++imgDbl)
+	for (imgDbl=0; imgDbl<=1; ++imgDbl)
 	{
-		for (int iContrThr=27; iContrThr<100; iContrThr++)
+		for (int iContrThr=0; iContrThr<100; iContrThr++)
 		{
 			contrThr = iContrThr / 100.0;
 

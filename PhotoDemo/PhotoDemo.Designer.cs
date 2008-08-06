@@ -125,7 +125,7 @@
             this.txtImgDbl.Name = "txtImgDbl";
             this.txtImgDbl.Size = new System.Drawing.Size(44, 21);
             this.txtImgDbl.TabIndex = 10;
-            this.txtImgDbl.Text = "1";
+            this.txtImgDbl.Text = "0";
             // 
             // label11
             // 
