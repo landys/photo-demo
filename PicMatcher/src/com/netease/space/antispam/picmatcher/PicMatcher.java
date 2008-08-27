@@ -1,4 +1,4 @@
-package com.picMatcher;
+package com.netease.space.antispam.picmatcher;
 
 /**
  * This interface includes methods to setup index and query an image.

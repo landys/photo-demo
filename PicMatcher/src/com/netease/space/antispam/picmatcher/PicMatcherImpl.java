@@ -1,4 +1,4 @@
-package com.picMatcher;
+package com.netease.space.antispam.picmatcher;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,17 +15,19 @@ import java.io.PrintWriter;
  */
 public class PicMatcherImpl implements PicMatcher {
 
-    private final String indexName = "pic_index";
+    private String indexName;
 
-    private final String setupIndexTempFile = "index_img_files";
+    private String setupIndexTempFile;
 
-    private final String setupIndexKeypointsFile = "index_keypoints";
+    private String setupIndexKeypointsFile;
 
-    private final String queryKeypointsFile = "query_keypoints";
+    private String queryKeypointsFile;
 
-    private final String outputFile = "output_image";
+    private String outputFile;
+    
+    private String curDir;
 
-    private final int imgDbl = 0;
+    private final int imgDbl = 1;
 
     private final double contrThr = 0.0;
 
@@ -42,8 +44,32 @@ public class PicMatcherImpl implements PicMatcher {
 
     private native void query(String queryFile, String index, String output);
 
+    private static final String DEFAULT_CURDIR = "./";
+
     static {
         System.loadLibrary("PicMatcherService");
+    }
+
+    public PicMatcherImpl() {
+        this(DEFAULT_CURDIR);
+    }
+
+    /**
+     * @param curDir
+     *            current directory for temp files.
+     */
+    public PicMatcherImpl(String curDir) {
+        setCurDir(curDir);
+        
+        indexName = this.curDir + "pic_index";
+
+        setupIndexTempFile = this.curDir + "index_img_files";
+
+        setupIndexKeypointsFile = this.curDir + "index_keypoints";
+
+        queryKeypointsFile = this.curDir + "query_keypoints";
+
+        outputFile = this.curDir + "output_image";
     }
 
     /**
@@ -156,20 +182,73 @@ public class PicMatcherImpl implements PicMatcher {
     }
 
     /**
+     * @return the curDir.
+     */
+    public String getCurDir() {
+        return curDir;
+    }
+
+    /**
+     * @param curDir
+     *            the curDir to set.
+     */
+    public void setCurDir(final String curDir) {
+        boolean goodDir = false;
+        String dir = null;
+        if (curDir != null) {
+            dir = curDir.replaceAll("\\\\", "/");
+            final File file = new File(dir);
+            if (!file.isDirectory()) {
+                if (!file.exists()) {
+                    if (file.mkdirs()) {
+                        goodDir = true;
+                    } else {
+                        System.out.println("ERROR: Create directory error: "
+                                + dir);
+                    }
+                } else {
+                    System.out
+                            .println("ERROR: The path exists, but not a directory: "
+                                    + dir);
+                }
+            } else {
+                goodDir = true;
+            }
+        }
+
+        if (goodDir) {
+            this.curDir = dir;
+            if (!this.curDir.endsWith("/")) {
+                this.curDir += '/';
+            }
+        } else {
+            this.curDir = DEFAULT_CURDIR;
+        }
+    }
+
+    /**
      * Demo.
      * 
      * @param args
      */
     public static void main(String[] args) {
-        PicMatcherImpl matcher = new PicMatcherImpl();
-        // set up index
-        matcher.setupIndex("E:\\testpics\\heads");
-
-        // query
-        System.out.println(matcher
-                .query("E:\\testpics\\mm270k\\AGRICLT2\\AH267.jpg"));
-        System.out.println(matcher
-                .query("E:\\testpics\\heads\\199565758487940524.jpg"));
+        if (args.length < 2) {
+            System.out
+                    .println("It should contans two arguments. 1-setupIndex, 2-match. i.e.");
+            System.out
+                    .println(">java -jar PicMatcher.jar 1 \"E:\\testpics\\heads\"");
+            System.out
+                    .println(">java -jar PicMatcher.jar 2 \"E:\\testpics\\heads\\1.jpg\"");
+            return;
+        }
+        PicMatcherImpl matcher = new PicMatcherImpl("./data");
+        if ("1".equals(args[0].trim())) {
+            // set up index
+            matcher.setupIndex(args[1]);
+        } else {
+            // query
+            System.out.println(matcher.query(args[1]));
+        }
     }
 
 }

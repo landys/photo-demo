@@ -175,7 +175,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\com_picMatcher_PicMatcherImpl.h"
+				RelativePath=".\com_netease_space_antispam_picmatcher_PicMatcherImpl.h"
 				>
 			</File>
 		</Filter>
