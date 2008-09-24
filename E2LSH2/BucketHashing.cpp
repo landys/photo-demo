@@ -507,7 +507,7 @@ inline Uns32T computeUHashFunction(Uns32T *rndVector, Uns32T *(data[]), IntT nDa
   return h;
 }
 
-inline Uns32T combinePrecomputedHashes(Uns32T *firstBucketVector, Uns32T *secondBucketVector, IntT nBucketVectorPieces, IntT uhfIndex){
+Uns32T combinePrecomputedHashes(Uns32T *firstBucketVector, Uns32T *secondBucketVector, IntT nBucketVectorPieces, IntT uhfIndex){
   // CR_ASSERT(bucketVector != NULL);
 //   if (nBucketVectorPieces == 1) {
 //     // using normal <g> functions.

@@ -214,6 +214,6 @@ void precomputeUHFsForULSH(PUHashStructureT uhash, Uns32T *uVector, IntT length,
 
 inline Uns32T computeUHashFunction(Uns32T *rndVector, Uns32T *(data[]), IntT nDataPieces, IntT size, Uns32T prime, Int32T hashTableSize);
 
-inline Uns32T combinePrecomputedHashes(Uns32T *firstBucketVector, Uns32T *secondBucketVector, IntT nBucketVectorPieces, IntT uhfIndex);
+Uns32T combinePrecomputedHashes(Uns32T *firstBucketVector, Uns32T *secondBucketVector, IntT nBucketVectorPieces, IntT uhfIndex);
 
 #endif

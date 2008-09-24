@@ -204,7 +204,6 @@ PRNearNeighborStructT initLSH(RNNParametersT algParameters, Int32T nPointsEstima
   return nnStruct;
 }
 
-void preparePointAdding(PRNearNeighborStructT nnStruct, PUHashStructureT uhash, PPointT point);
 
 
 // Construct PRNearNeighborStructT given the data set <dataSet> (all
@@ -418,7 +417,7 @@ inline void computeULSH(PRNearNeighborStructT nnStruct, IntT gNumber, RealT *poi
   }
 }
 
-inline void preparePointAdding(PRNearNeighborStructT nnStruct, PUHashStructureT uhash, PPointT point){
+void preparePointAdding(PRNearNeighborStructT nnStruct, PUHashStructureT uhash, PPointT point){
   ASSERT(nnStruct != NULL);
   ASSERT(uhash != NULL);
   ASSERT(point != NULL);
