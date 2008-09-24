@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<project name="PicMatcher" default="jar" basedir=".">
+
+	<property name="debug" value="off"/>
+	<property name="optimize" value="on"/>
+
+	<property name="project.name" value="PicMatcher"/>
+	
+	<property name="bin.dir" value="./bin"/>
+	<property name="src.dir" value="./src"/>
+	<property name="lib.dir" value="."/>
+
+	<target name="build">
+		<mkdir dir="${bin.dir}"/>
+		<javac destdir="${bin.dir}" srcdir="${src.dir}"
+			debug="${debug}" optimize="${optimize}">
+		</javac>
+	</target>
+
+	<target name="jar" depends="build">
+		<jar jarfile="${bin.dir}/${project.name}.jar" basedir="./bin" excludes="**/.svn/* **/CVS/* **/*.jar **/*.zip">
+			<manifest>
+				<attribute name="Built-By" value="netease"/>
+				<attribute name="Main-Class" value="com.netease.space.antispam.picmatcher.PicMatcherImpl"/>
+				<attribute name="Sealed" value="false"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="clean">
+		<delete dir="${bin.dir}"/>
+	</target>
+</project>
