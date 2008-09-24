@@ -51,7 +51,11 @@ char* logFileName = "sift.log";
 /**
  * This interface provides SIFT algorithm implementation. Returns number of keypoints if success, -1 if fail.
 **/
+#ifdef WIN32
 extern "C" __declspec(dllexport) int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr)
+#else
+extern "C" int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr)
+#endif
 {
 	IplImage* img;
 	struct feature* features;
@@ -105,7 +109,11 @@ extern "C" __declspec(dllexport) int showSift(const char* imagenamefile, const c
  * out_file_name the output keypoints file
  * 
  */
+#ifdef WIN32
 extern "C" __declspec(dllexport) int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr)
+#else
+extern "C" int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr)
+#endif
 {
 	IplImage* img;
 	struct feature* features;

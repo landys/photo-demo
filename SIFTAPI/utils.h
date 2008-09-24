@@ -12,6 +12,9 @@ Copyright (C) 2006  Rob Hess <hess@eecs.oregonstate.edu>
 #include "cxcore.h"
 
 #include <stdio.h>
+#ifdef __linux__
+#include <dirent.h>
+#endif
 
 /* absolute value */
 #ifndef ABS
@@ -143,8 +146,8 @@ basename command.
 
 @return Returns the basename of \a pathname.
 */
-extern char* basename( const char* pathname );
-
+/*extern char* basename( const char* pathname );
+*/
 
 /**
 Displays progress in the console with a spinning pinwheel.  Every time this

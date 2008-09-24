@@ -15,7 +15,9 @@ Copyright (C) 2006  Rob Hess <hess@eecs.oregonstate.edu>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-
+#ifdef __linux__
+#include <stdarg.h>
+#endif
 
 /*************************** Function Definitions ****************************/
 

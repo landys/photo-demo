@@ -32,9 +32,9 @@
 #include <set>
 #include <vector>
 #include <utility>
-#include <Windows.h>
+//#include <Windows.h>
 #include <cmath>
-#include <TCHAR.H>
+//#include <TCHAR.H>
 #include "LSHMain.h"
 using namespace std;
 
@@ -50,6 +50,14 @@ using std::string;
 PPointT *dataSetPoints = NULL;
 // Number of points in the data set.
 IntT nPoints = 0;
+
+int pointsDimension = 128;
+
+double parameterR = 50;
+
+int parameterK = 16;
+
+int parameterL = 40;
 
 
 // The value of parameter R (a near neighbor of a point <q> is any
@@ -442,10 +450,10 @@ int main(int nargs, char **args){
 	//queryInner("keypointMatch", "index36", optParameters, "output.txt");
 }
 
-extern "C" __declspec(dllexport) int test() {
+/*extern "C" __declspec(dllexport) int test() {
 	printf("%d", 1);
 	return 1;
-}
+}*/
 /*
 extern "C" __declspec(dllexport) void setUpIndex(char* dataFileStr, char* indexNameStr) {
 	
@@ -479,8 +487,11 @@ void saveParameter(string indexName, double inputR, double inputW, int inputK, i
 	fwrite(&inputL, sizeof(inputL), 1, indexFile);
 	fclose(indexFile);
 }
-
+#ifdef WIN32
 extern "C" __declspec(dllexport) void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR/* = parameterR*/, double inputW/* = PARAMETER_W_DEFAULT*/, int inputK/* = parameterK*/, int inputL/* = parameterL*/) {
+#else
+extern "C" void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR/* = parameterR*/, double inputW/* = PARAMETER_W_DEFAULT*/, int inputK/* = parameterK*/, int inputL/* = parameterL*/) {
+#endif // WIN32
     RNNParametersT optParameters;
 
 	// 设置默认参数
@@ -526,7 +537,12 @@ void getParameter(string indexName, double& inputR, double& inputW, int& inputK,
 	fread(&inputL, sizeof(inputL), 1, indexFile);
 	fclose(indexFile);
 }
+
+#ifdef WIN32
 extern "C" __declspec(dllexport) void query(char* queryFileStr, char* indexNameStr, char* outputFileStr) {
+#else
+extern "C" void query(char* queryFileStr, char* indexNameStr, char* outputFileStr) {
+#endif // WIN32
 	string queryFile(queryFileStr);
 	string indexName(indexNameStr);
 	string outputFile(outputFileStr);
@@ -972,7 +988,7 @@ void getHashfunction(PRNearNeighborStructT nnStruct, FILE* indexFile)
 	nnStruct->lshFunctions = lshFunctions;
 }
 
-string getDataSetFileNameFromIndex(char* indexFile) {
+/*string getDataSetFileNameFromIndex(char* indexFile) {
 	//rewind(indexFile);
 
 	memcpy(sBuffer, indexFile, sizeof(char) * MAX_FILE_NAME_LENGTH);
@@ -1226,6 +1242,210 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 	simple_unmmap(&mapStructure1);
 	simple_unmmap(&mapStructure2);
 
+}*/
+
+string getDataSetFileNameFromIndex(FILE* indexFile) {
+	rewind(indexFile);
+
+	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, indexFile);
+
+	return string(sBuffer);
+}
+void queryInner(string queryFileName, string indexFileName, RNNParametersT optParameters, string outputFileName) {
+	FILE* queryFile = fopen(queryFileName.c_str(), "r");
+	FILE* indexFile = fopen(indexFileName.c_str(), "rb");
+	FILE* datasetFile = fopen(getDataSetFileNameFromIndex(indexFile).c_str(), "rb");
+	FILE* outputFile = fopen(outputFileName.c_str(), "w+t");
+
+	//IntT resultSize = nQueries;
+	//PPointT *result = (PPointT*)MALLOC(resultSize * sizeof(*result));
+	PPointT queryPoint;
+	FAILIF(NULL == queryFile);
+	FAILIF(NULL == indexFile);
+	FAILIF(NULL == datasetFile);
+	FAILIF(NULL == outputFile);
+	FAILIF(NULL == (queryPoint = (PPointT)MALLOC(sizeof(PointT))));
+	FAILIF(NULL == (queryPoint->coordinates = (RealT*)MALLOC(pointsDimension * sizeof(RealT))));
+
+	PRNearNeighborStructT nnStruct = getHashedStructure(optParameters, false, true, indexFile);
+
+	Uns32T *mainHashA = NULL, *controlHash1 = NULL;
+	//Uns32T *mainhashABackup = nnStruct->hashedBuckets[0]->mainHashA;
+	PUHashStructureT modelHT = newUHashStructure(HT_LINKED_LIST, HASH_TABLE_SIZE, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
+
+	if (mainHashA == NULL) {
+		mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
+		modelHT->mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
+	}
+
+	if (controlHash1 == NULL) {
+		controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
+		modelHT->controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
+	}
+	// Uns32T **(precomputedHashesOfULSHs[nnStruct->nHFTuples]);
+	Uns32T *** precomputedHashesOfULSHs = (Uns32T ***) alloca(nnStruct->nHFTuples * sizeof(Uns32T**));
+	for(IntT l = 0; l < nnStruct->nHFTuples; l++){
+		FAILIF(NULL == (precomputedHashesOfULSHs[l] = (Uns32T**)MALLOC(sizeof(Uns32T*))));
+		for(IntT i = 0; i < 1; i++){
+			FAILIF(NULL == (precomputedHashesOfULSHs[l][i] = (Uns32T*)MALLOC(N_PRECOMPUTED_HASHES_NEEDED * sizeof(Uns32T))));
+		}
+	}
+
+	map<string, int> picCount;
+	map<int, int> nnPoints;
+
+	string prevFile = "UNINITIALIZED";
+	string currentFile;
+	map<pair<int, unsigned int>, int> bucketMatch;
+
+	while (true) {
+		FAILIF(queryFile == NULL);
+
+		bool isEOF = false;
+
+		if (fscanf(queryFile, "%s", sBuffer) == EOF) {
+			isEOF = true;
+		}
+		currentFile = string(sBuffer);
+		currentFile = currentFile.substr(0, currentFile.find_last_of('_'));
+
+		if ((prevFile != "UNINITIALIZED" && currentFile != prevFile) || isEOF) {
+			int sBufferSize = 0;
+			while (sBuffer[sBufferSize] != '\0') sBufferSize++;
+			for (int j = sBufferSize - 1; j >= 0; j--) {
+				ungetc(sBuffer[j], queryFile);
+			}
+
+			//std::sort(bucketMatch.begin(), bucketMatch.end());
+
+			rewind(indexFile);
+
+			fseek(indexFile, sizeof(char) * MAX_FILE_NAME_LENGTH, SEEK_CUR);
+			int prevIndex = -1;
+			for (map<pair<int, unsigned int>, int>::iterator it = bucketMatch.begin(); it != bucketMatch.end(); it++) {
+				int hIndex = it->first.first;
+				unsigned int hValue = it->first.second;
+
+				fseek(indexFile, ONE_ROW * (hIndex - prevIndex - 1), SEEK_CUR);
+
+				int num;
+
+				// 得到当前的num
+				fread(&num, sizeof(int), 1, indexFile);
+
+				for (int i = 0; i < num; i++) {
+					int curIndex;
+					unsigned int curValue;
+					fread(&curIndex, sizeof(curIndex), 1, indexFile);
+					fread(&curValue, sizeof(curValue), 1, indexFile);
+
+					if (curValue == hValue) {
+						nnPoints[curIndex] += it->second;
+					}
+				}
+				
+				fseek(indexFile, (sizeof(int) + sizeof(unsigned int)) * (MAX_IN_ONE_BUCKET - num), SEEK_CUR);
+				prevIndex = hIndex;
+			}
+
+			//sort(nnPoints.begin(), nnPoints.end());
+
+			rewind(datasetFile);
+			prevIndex = -1;
+
+			for (map<int, int>::iterator it = nnPoints.begin(); it != nnPoints.end(); it++) {
+				fseek(datasetFile, DATASET_ONE_ROW_SIZE * (it->first - prevIndex - 1), SEEK_CUR);
+				fread(sBuffer,sizeof(char), MAX_FILE_NAME_LENGTH, datasetFile);
+
+				string pointsId = string(sBuffer);
+				picCount[pointsId.substr(0, pointsId.find_last_of('_'))] += it->second;
+
+				fseek(datasetFile, DATASET_ONE_ROW_SIZE - MAX_FILE_NAME_LENGTH * sizeof(char), SEEK_CUR);
+				prevIndex = it->first;
+			}
+
+			vector<pair<int, string> > matchedPicture;
+			for (map<string, int>::iterator pos = picCount.begin(); pos != picCount.end(); pos++) {
+				if (pos->second >= MIN_MATCH_GAP) {
+					matchedPicture.push_back(make_pair(pos->second, pos->first));
+				}
+			}
+
+			sort(matchedPicture.begin(), matchedPicture.end());
+
+			//printf("*************************************************************\n");
+			//printf("***************************Result****************************\n");
+			//printf("*************************************************************\n");
+			for (int i = (int) matchedPicture.size() - 1; i >= 0; i--) {
+				//std::cout << matchedPicture[i].second << " " <<  matchedPicture[i].first << std::endl;
+				fprintf(outputFile, "%s*%d*", matchedPicture[i].second.c_str(), matchedPicture[i].first);
+				//printf("%s(%d) ", matchedPicture[i].second.c_str(), matchedPicture[i].first);
+			}
+			nnPoints.clear();
+			picCount.clear();
+
+			fprintf(outputFile, "\n");
+			//printf("\n");
+
+			if (isEOF) break;
+
+			bucketMatch.clear();
+		}
+		prevFile = currentFile;
+		RealT sqrLength = 0;
+		// read in the query point.
+		int ignore = IGNORE_DIMENSION;
+		for(IntT d = 0; d < pointsDimension; d++){
+			fscanf(queryFile, "%lf", &(queryPoint->coordinates[d]));
+			//FAILIF(fscanf(queryFile, "%lf", &(queryPoint->coordinates[d])) != 1);
+			sqrLength += SQR(queryPoint->coordinates[d]);
+			if (ignore > 0) ignore--, d--;
+		}
+		queryPoint->sqrLength = sqrLength;
+		//printRealVector("Query: ", pointsDimension, queryPoint->coordinates);
+		preparePointAdding(nnStruct, modelHT, queryPoint);
+		for(IntT l = 0; l < nnStruct->nHFTuples; l++){
+#ifdef MYDEBUG
+			if (l < 10) printf("%d: ", l);
+#endif
+			for(IntT h = 0; h < N_PRECOMPUTED_HASHES_NEEDED; h++){
+				precomputedHashesOfULSHs[l][0][h] = nnStruct->precomputedHashesOfULSHs[l][h];
+#ifdef MYDEBUG
+				if (l < 10) printf(" %d", precomputedHashesOfULSHs[l][i][h]);
+#endif
+			}
+#ifdef MYDEBUG
+			if (l < 10) printf("\n");
+#endif
+		}
+
+
+		for(IntT j = 0; j < nnStruct->parameterL; j++){
+			// build the model HT.
+			// Add point <dataSet[p]> to modelHT.
+			if (!nnStruct->useUfunctions) {
+				// Use usual <g> functions (truly independent; <g>s are precisly
+				// <u>s).
+				Uns32T hValue = combinePrecomputedHashes(precomputedHashesOfULSHs[j][0], NULL, 1, UHF_MAIN_INDEX);
+				int hIndex = hValue % HASH_TABLE_SIZE;
+
+				int bucketSize;
+				int* bucket = NULL;
+
+				bucketMatch[std::make_pair(hIndex, hValue)]++;
+
+#ifdef MYDEBUG
+				printf(" %d", hIndex);
+#endif
+			}
+		}
+
+		if (isEOF) break;
+	}
+	fclose(datasetFile);
+	fclose(queryFile);
+	fclose(indexFile);
+	fclose(outputFile);
 }
 
 double computeAlpha(string indexFileName) {

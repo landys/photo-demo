@@ -1,11 +1,16 @@
 // The dimension of the points.
-int pointsDimension = 128;
+extern int pointsDimension;
 
-double parameterR = 50;
+extern double parameterR;
 
-int parameterK = 16;
+extern int parameterK;
 
-int parameterL = 40;
+extern int parameterL;
 
+#ifdef WIN32
 extern "C" __declspec(dllexport) void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR = parameterR, double inputW = 4.0/*PARAMETER_W_DEFAULT*/, int inputK = parameterK, int inputL = parameterL);
 extern "C" __declspec(dllexport) void query(char* queryFileStr, char* indexNameStr, char* outputFileStr);
+#else
+extern "C" void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR = parameterR, double inputW = 4.0/*PARAMETER_W_DEFAULT*/, int inputK = parameterK, int inputL = parameterL);
+extern "C" void query(char* queryFileStr, char* indexNameStr, char* outputFileStr);
+#endif // WIN32
