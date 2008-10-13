@@ -32,6 +32,11 @@ Version: 1.1.1-20070330
 
 /******************************** Globals ************************************/
 
+#define ERROR_OUTPUT stderr
+#define FAILIF(b) {if (b) {fprintf(ERROR_OUTPUT, "FAILIF triggered on line %d, file %s.\n", __LINE__, __FILE__); exit(1);}}
+#define PRINT_FAIL {fprintf(ERROR_OUTPUT, "FAILIF triggered on line %d, file %s.\n", __LINE__, __FILE__); }
+#define FREE(pointer) {if (pointer != NULL) {free(pointer);} pointer = NULL; }
+
 //extern char img_file_name[30] = "e:\\22\\1.jpg";
 //char* out_file_name  = "c:\\²âÊÔ\\6x_pca3042.txt";
 //char* img_file_name2 = "..\\10003.bmp";
@@ -47,9 +52,25 @@ int descr_width = SIFT_DESCR_WIDTH;
 int descr_hist_bins = SIFT_DESCR_HIST_BINS;
 //char* imagenamefile  = "e:\\imagename.txt";
 char* logFileName = "sift.log";
+int curPointNum = 0;
+Long64T allPointsNum = 0; // the number of points of all images
+int nFileIndex = 0; // the index of files if the result saved in several files
+FILE* outfile = 0;	// the FILE of the result
+char outfileName[256] = {'\0'};	// the result file name
+
+// one point = Long64T+int+double(4)+double(128) = 1036 bytes.
+// the file should be less than 2G, so a file should contain less than 2072860 points.
+// the file may contains some other information about the data, so the limit of points is set as 2000000.
+const int LIMIT_POINTS_PER_FILE = 2000000;
+
+int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr);
+void saveOneImageFeatures(struct feature* pfeatures, int n, Long64T id);
+void saveAndCloseOutFileHeader();
+void initParameter(const char* out_file_name);
 
 /**
- * This interface provides SIFT algorithm implementation. Returns number of keypoints if success, -1 if fail.
+ * This interface provides SIFT algorithm implementation. Returns number of files to be sifted if success, -1 if fail.
+ * The image names in showSift should be less then 255, or maybe stack overflow.
 **/
 #ifdef WIN32
 extern "C" __declspec(dllexport) int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr)
@@ -57,111 +78,176 @@ extern "C" __declspec(dllexport) int showSift(const char* imagenamefile, const c
 extern "C" int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr)
 #endif
 {
-	IplImage* img;
-	struct feature* features;
-	int n = -1, i, j;
+	initParameter(out_file_name);
+
+	int nFiles = 0;
+
 	FILE * imageset = fopen(imagenamefile, "rt");
-	FILE* outfile = fopen(out_file_name,"w");
-	char imagename[255];
+	FAILIF(imageset == NULL);
+	outfile = fopen(outfileName,"w+b");
+	FAILIF(outfile == NULL);
+	fseek(outfile, sizeof(Long64T)+sizeof(int), SEEK_SET); // for file header about the datasets
+	char linebuf[256] = {'\0'};
+	char* imagename = 0;
+	
+	Long64T id = 0;
+	struct feature* pfeatures = 0;
 
-	long abt = clock();
-	while(fgets(imagename, 255, imageset) != NULL)
+	//long abt = clock();
+	while(fscanf(imageset, LONG64T_TEXT, &id) != EOF)
 	{
+		fgets(linebuf, 255, imageset);
 		int i = 0;
-		for (i=0; imagename[i] != '\n' && imagename[i] != '\r' && imagename[i] != '\0'; ++i); // loop stop here
-		imagename[i] = '\0';
-
-		img = cvLoadImage( imagename, 1 );
-
-		if(img == NULL)
+		for (i=0; linebuf[i] != '\n' && linebuf[i] != '\r' && linebuf[i] != '\0'; ++i); // loop stop here
+		for (--i; i>=0 && (linebuf[i] == ' ' || linebuf[i] == '\t'); --i); // loop stop here, eliminate the tail spaces/tabs.
+		if (i < 0)
 		{
-			fprintf(stderr, "unable to load image from %s\n", imagename);
-			return 0;
+			// not legal file name with only spaces/tabs.
+			continue;
 		}
+		linebuf[i+1] = '\0';
+		for (imagename=linebuf; *imagename!='\0' && (*imagename==' ' || *imagename=='\t'); ++imagename); // loop stop here, eliminate the head spaces/tabs.
 
-		n = _sift_features( img, &features, intvls, sigma, contr_thr, curv_thr,
-			img_dbl, descr_width, descr_hist_bins );
-
-		for( i = 0; i < n; i++ )
+		int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr);
+		if (n == -1)
 		{
-			fprintf( outfile, "%s_%d %f %f %f %f ",imagename, i, features[i].y, features[i].x,
-				features[i].scl, features[i].ori );	
-			//	fprintf( file, "%s_%d ",img_file_name, i);
-			for( j = 0; j < 128; j++ )
-
-				fprintf( outfile, "%d ", ((int)features[i].descr[j] ));
-
-			fprintf( outfile, "\n" );
+			FREE(pfeatures);
+			continue;
 		}
+		saveOneImageFeatures(pfeatures, n, id);
+		FREE(pfeatures);
 
-		cvReleaseImage(&img);
-
-		free(features);
+		allPointsNum += n;
+		++nFiles;
 	}
 	fclose(imageset);
-	fclose(outfile);
 
-	return n;
+	saveAndCloseOutFileHeader();
+
+	return nFiles;
 }
 
 /**
- * imagename the file name of the image
- * out_file_name the output keypoints file
+ * This interface provides SIFT algorithm implementation. Returns number of keypoints if success, -1 if fail.
+ * @parameter imagename the file name of the image
+ * @parameter out_file_name the output keypoints file
  * 
  */
 #ifdef WIN32
-extern "C" __declspec(dllexport) int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr)
+extern "C" __declspec(dllexport) int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, Long64T id/*=0*/)
 #else
-extern "C" int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr)
+extern "C" int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, Long64T id/*=0*/)
 #endif
 {
-	IplImage* img;
-	struct feature* features;
-	int n = -1, i, j;
-	FILE* outfile = fopen(out_file_name, "w");
+	initParameter(out_file_name);
 
+	outfile = fopen(outfileName, "w+b");
+	FAILIF(outfile == NULL);
+	fseek(outfile, sizeof(Long64T)+sizeof(int), SEEK_SET); // for file header about the datasets
+
+	struct feature* pfeatures;
+
+	int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr);
+	saveOneImageFeatures(pfeatures, n, id);
+	FREE(pfeatures);
+	allPointsNum += n;
+
+	saveAndCloseOutFileHeader();
+	
+	return n;
+
+}
+
+/**
+ * Do real sift here, and save the featured into an opened file, which passed from the caller.
+**/
+int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr)
+{
+	IplImage* img;
+	
 	img = cvLoadImage( imagename, 1 );
 	//	fprintf( stderr, "unable to load image from %s", img_file_name );
 
 	if(img == NULL)
 	{
-		fprintf(stderr, "unable to load image from %s.\n", imagename);
+		fprintf(stderr, "unable to load image from %s, on line %d, file %s.\n", imagename, __LINE__, __FILE__);
 		return -1;
 	}
 
-	n = _sift_features( img, &features, intvls, sigma, contr_thr, curv_thr,
+	int n = _sift_features( img, ppfeatures, intvls, sigma, contr_thr, curv_thr,
 		img_dbl, descr_width, descr_hist_bins );
-
-	for( i = 0; i < n; i++ )
-	{
-		fprintf( outfile, "%s_%d %f %f %f %f ",imagename, i, features[i].y, features[i].x,
-			features[i].scl, features[i].ori );
-		for( j = 0; j < 128; j++ )
-
-			fprintf( outfile, "%d ", ((int)features[i].descr[j] ));
-
-		fprintf( outfile, "\n" );
-	}
 
 	cvReleaseImage(&img);
 
-	free(features);
-
-	fclose(outfile);
-
 	return n;
+}
 
+// save the features of one point into the outfile, return the number of points actually saved.
+void saveOneImageFeatures(struct feature* pfeatures, int n, Long64T id)
+{
+	static char buf[12] = {'\0'};
+	static char outfilePiece[256] = {'\0'};
+
+	for(int i = 0; i < n; i++ )
+	{
+		if (++curPointNum > LIMIT_POINTS_PER_FILE)
+		{
+			curPointNum = 1;
+			fclose(outfile);
+			sprintf(buf, "%d", ++nFileIndex);
+			strcpy(outfilePiece, outfileName);
+			strcat(outfilePiece, buf);
+			outfile = fopen(outfilePiece, "wb");
+			FAILIF(outfile == NULL);
+		}
+		//fprintf( outfile, "%s_%d %f %f %f %f ",imagename, i, pfeatures[i].y, pfeatures[i].x,
+		//	pfeatures[i].scl, pfeatures[i].ori );
+		fwrite(&id, sizeof(Long64T), 1, outfile);
+		fwrite(&i, sizeof(int), 1, outfile);
+		fwrite(&(pfeatures[i].y), sizeof(double), 1, outfile);
+		fwrite(&(pfeatures[i].x), sizeof(double), 1, outfile);
+		fwrite(&(pfeatures[i].scl), sizeof(double), 1, outfile);
+		fwrite(&(pfeatures[i].ori), sizeof(double), 1, outfile);
+		//for(int j = 0; j < 128; j++ )
+		//{
+		//	fprintf( outfile, "%d ", ((int)pfeatures[i].descr[j] ));	
+		//}
+		fwrite(&(pfeatures[i].descr[0]), sizeof(double), FEATURE_MAX_D, outfile);
+
+		//fprintf( outfile, "\n" );
+	}
+
+}
+
+void saveAndCloseOutFileHeader()
+{
+	if (nFileIndex >= 2)
+	{
+		fclose(outfile);
+		outfile = fopen(outfileName,"r+b");
+		FAILIF(outfile == NULL);
+	}
+
+	rewind(outfile);
+	fwrite(&allPointsNum, sizeof(Long64T), 1, outfile);
+	fwrite(&LIMIT_POINTS_PER_FILE, sizeof(int), 1, outfile);
+	fclose(outfile);
+}
+
+void initParameter(const char* out_file_name)
+{
+	curPointNum = 0;
+	allPointsNum = 0;
+	nFileIndex = 1;
+	strcpy(outfileName, out_file_name);
 }
 
 /*
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd ) 
 {
-	showSift("imgsForMatch.txt", "output.txt", 1, 0.04);
+	siftImage("E:\\projects\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\86958406.jpg", "E:\\projects\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", 1, 0.04, 12345678901234);
+
+	return 0;
 }
 */
-
-
-
-
-
 
