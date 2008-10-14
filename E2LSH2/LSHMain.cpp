@@ -1316,7 +1316,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 	FILE* datasetFile = fopen(datasetFileName.c_str(), "rb");
 	FAILIF(NULL == datasetFile);
 	int curDataFile = 1; // index of data set files if several data set files exist
-	FILE* outputFile = fopen(outputFileName.c_str(), "w+t");
+	FILE* outputFile = fopen(outputFileName.c_str(), "wb");
 	FAILIF(NULL == outputFile);
 
 	//IntT resultSize = nQueries;
@@ -1361,6 +1361,9 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 	double temp[IGNORE_DIMENSION] = {0.0};
 	char buf[12] = {'\0'};
 	fseek(queryFile, sizeof(Long64T) + sizeof(int), SEEK_SET);
+	PointId endMark;
+	endMark.id = -1;
+	endMark.index = -1;
 	
 	while (true) {
 		bool isEOF = false;
@@ -1473,18 +1476,24 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 			//printf("*************************************************************\n");
 			for (int i = (int) matchedPicture.size() - 1; i >= 0; i--) {
 				//std::cout << matchedPicture[i].second << " " <<  matchedPicture[i].first << std::endl;
+				FAILIF(1 != fwrite(&(matchedPicture[i].second), sizeof(Long64T), 1, outputFile));
+				FAILIF(1 != fwrite(&(matchedPicture[i].first), sizeof(int), 1, outputFile));
+/*
 #ifdef WIN32
 				fprintf(outputFile, "%I64d %d ", matchedPicture[i].second, matchedPicture[i].first);
 #else
 				fprintf(outputFile, "%lld %d ", matchedPicture[i].second, matchedPicture[i].first);
 #endif
+*/
 				
 				//printf("%s(%d) ", matchedPicture[i].second.c_str(), matchedPicture[i].first);
 			}
 			nnPoints.clear();
 			picCount.clear();
 
-			fprintf(outputFile, "\n");
+			FAILIF(1 != fwrite(&(endMark.id), sizeof(Long64T), 1, outputFile));
+			FAILIF(1 != fwrite(&(endMark.index), sizeof(int), 1, outputFile));
+			//fprintf(outputFile, "\n");
 			//printf("\n");
 
 			if (isEOF) break;

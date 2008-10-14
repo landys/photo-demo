@@ -165,7 +165,25 @@ void testE2LSH()
 	//setUpIndex("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex");
 	//outputIndexFile("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex.txt");
 	printf("Begin to query\n");
-	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out.txt");
+	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out");
+	FILE* out = fopen("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out", "rb");
+	FILE* outText = fopen("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out.txt", "wt");
+	Long64T id;
+	int index;
+	while (fread(&id, sizeof(Long64T), 1, out) == 1)
+	{
+		fread(&index, sizeof(int), 1, out);
+		if (id == -1 && index == -1)
+		{
+			fprintf(outText, "\n");
+		}
+		else
+		{
+			fprintf(outText, "%I64d %d, ", id, index);
+		}
+	}
+	fclose(out);
+	fclose(outText);
 }
 
 int main()
