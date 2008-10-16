@@ -207,6 +207,7 @@ void printOutput(string outName, string outtextName)
 
 void testE2LSH()
 {
+	
 	int n1 = siftImage("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\1.jpg", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", 1, 0.04, 55);
 	int n2 = showSift("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_img_files", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints", 1, 0.04);
 	int n3 = siftImage("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\3.jpg", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", 1, 0.04, 44);
@@ -230,10 +231,10 @@ void testE2LSH()
 	//printf("end add to index\n");
 	outputIndexFile("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex_added.txt");
 	printf("Begin to query\n");
-
+	
 	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2");
 	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2.txt");
-
+	
 	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out");
 	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out.txt");
 }

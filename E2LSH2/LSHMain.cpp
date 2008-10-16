@@ -719,6 +719,8 @@ void convertTextDataFile2BinFile(string textDataFileName) {
 	fclose(binFile);
 }
 */
+// 加入到index的过程, PRNearNeighborStructT->hashedBuckets是不改变的, 所以只要第一次计算出来就可以了. 原来的代码是每个PASS都NEW一次.
+// 似乎L(这里是40)个Hash函数是一模一样的, 程序乱写的???
 // parameter isAdd   mark whether the dataset is added to exist index, or setup a new one.
 // parameter minBucketNum    used when setup a new index, as the minimal bucket number of the new index.
 // parameter existNPoints    the number of exist points number when isAdd is true.
@@ -744,7 +746,6 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		indexFile = fopen(indexFileName.c_str(), "r+b");
 		FAILIF(indexFile == NULL);
 		nnStruct = getHashedStructure(optParameters, false, true, indexFile);
-		nnStruct->useUfunctions = false;
 		bucketNum = minBucketNum;
 		hashTableSize = bucketNum;
 	}
@@ -764,7 +765,6 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		//初始化文件表
 		initAllDiskBucket(indexFile, dataSetFileName, allPointsNum, pointNumLimit);
 		nnStruct = getHashedStructure(optParameters, true, false, indexFile);
-		nnStruct->useUfunctions = false;
 	}
 
 	bool isFirst = true;
@@ -860,79 +860,35 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		}
 
 		// initialize second level hashing (bucket hashing)
-		if (!isAdd)
-		FAILIF(NULL == (nnStruct->hashedBuckets = (PUHashStructureT*)MALLOC(nnStruct->parameterL * sizeof(PUHashStructureT))));
+		if (isFirst && !isAdd) {
+			FAILIF(NULL == (nnStruct->hashedBuckets = (PUHashStructureT*)MALLOC(nnStruct->parameterL * sizeof(PUHashStructureT))));
+		}
 
+
+		// 这里似乎有问题. L个Hash函数都一样的时候这样写没问题.modelHT应该在不同的Hash函数时, 分为nnStruct->hashedBuckets[i].
+		// 所以begin1和end1这一段似乎应该放在for(IntT i = 0; i < nnStruct->parameterL; i++){的里面???
+		/*********************begin1*************************/
 		PUHashStructureT modelHT = NULL;
-		///////////////////////////////////////////
-		/*if (isAdd) {
-			modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
-			//if (mainHashA == NULL) {
-			//	printf("mainHashA == NULL\n");
+		if (isFirst) {
+			if (isAdd) {
+				//Uns32T *mainhashABackup = nnStruct->hashedBuckets[0]->mainHashA;
+				modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
 				mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
-			//}
-			//if (controlHash1 == NULL) {
-			//	printf("controlHash1 == NULL\n");
+				modelHT->mainHashA = mainHashA;
 				controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
-			//}
+				modelHT->controlHash1 = controlHash1;
+			} else {
+				modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, FALSE, mainHashA, controlHash1, NULL);
+				//printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\FirstHashStr");
+			}
+		} else {
+			modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
 			modelHT->mainHashA = mainHashA;
 			modelHT->controlHash1 = controlHash1;
+			//printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\HashStr");
 		}
-		else {*/
-			if (isFirst) {
-				if (isAdd) {
-					//Uns32T *mainhashABackup = nnStruct->hashedBuckets[0]->mainHashA;
-					mainHashA = NULL;
-					controlHash1 = NULL;
-					printf("**********************\n");
-					printf("add first hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
-					printf("**********************\n");
-					modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
 
-					if (mainHashA == NULL) {
-						mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
-						modelHT->mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
-					}
 
-					if (controlHash1 == NULL) {
-						controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
-						modelHT->controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
-					}
-					/*
-					modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
-					//if (mainHashA == NULL) {
-					//	printf("mainHashA == NULL\n");
-					mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
-					//}
-					//if (controlHash1 == NULL) {
-					//	printf("controlHash1 == NULL\n");
-					controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
-					//}
-					modelHT->mainHashA = mainHashA;
-					modelHT->controlHash1 = controlHash1;*/
-					printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\FirstAddHashStr");
-				}
-				else {
-				
-				modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, FALSE, mainHashA, controlHash1, NULL);
-				printf("**********************\n");
-				printf("first hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
-				printf("**********************\n");
-				printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\FirstHashStr");
-				}
-			} else {
-				modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
-				printf("**********************\n");
-				printf("hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
-				printf("**********************\n");
-				modelHT->mainHashA = mainHashA;
-				modelHT->controlHash1 = controlHash1;
-				printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\HashStr");
-			}
-		/*}*/
-
-		printf("hhelo");
-		//printf("stop1\");
 		// Uns32T **(precomputedHashesOfULSHs[nnStruct->nHFTuples]);
 		Uns32T *** precomputedHashesOfULSHs = (Uns32T ***) alloca(nnStruct->nHFTuples * sizeof(Uns32T**));
 		for(IntT l = 0; l < nnStruct->nHFTuples; l++){
@@ -941,19 +897,9 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 				FAILIF(NULL == (precomputedHashesOfULSHs[l][i] = (Uns32T*)MALLOC(N_PRECOMPUTED_HASHES_NEEDED * sizeof(Uns32T))));
 			}
 		}
-		/*if (isAdd)
-		{
-			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\addNnStruct");
-		}
-		else
-		{
-			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\setupNnStruct");
-		}*/
 
-		//printf("abcdefg\n");/////////////////////
 		for(IntT i = 0; i < pointsCurrent; i++){
 			preparePointAdding(nnStruct, modelHT, dataSetPoints[i]);
-			//printf("aaaaaaaaaa\n");/////////////////////
 			for(IntT l = 0; l < nnStruct->nHFTuples; l++){
 #ifdef MYDEBUG
 				if (i == 0 && l < 10) printf("%d:  ", l);
@@ -969,6 +915,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 #endif
 			}
 		}
+		/*********************end1*************************/
 
 		//DPRINTF("Allocated memory(modelHT and precomputedHashesOfULSHs just a.): %d\n", totalAllocatedMemory);
 
@@ -1004,8 +951,10 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 				secondUComp = firstUComp + 1;
 			}
 
-			// copy the model HT into the actual (packed) HT. copy the uhash function too.
-			nnStruct->hashedBuckets[i] = newUHashStructure(optParameters.typeHT, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, modelHT);
+			if (isFirst && !isAdd) {
+				// copy the model HT into the actual (packed) HT. copy the uhash function too.
+				nnStruct->hashedBuckets[i] = newUHashStructure(optParameters.typeHT, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, modelHT);
+			}
 
 			for (int j = 0; j < modelHT->hashTableSize; j++) {
 				PGBucketT p = modelHT->hashTable.llHashTable[j];
@@ -1030,20 +979,11 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 
 		sort(prepareInsert.begin(), prepareInsert.end());
 
-		printf("abcddfsfefef\n");
 		for (int i = 0; i < prepareInsert.size(); i++) {
 			addOnePointToBucket(indexFile, prepareInsert[i].first, prepareInsert[i].second.first, prepareInsert[i].second.second);
 		}
 		if (isFirst && !isAdd) {
 			saveHashfunction(nnStruct, indexFile);
-		}
-		if (isAdd)
-		{
-			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\addNnStruct");
-		}
-		else
-		{
-			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\setupNnStruct");
 		}
 
 		for (int i = 0; i < pointsCurrent; i++) {
@@ -1062,7 +1002,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 			FREE(precomputedHashesOfULSHs[l]);
 		}
 		
-
+		/*
 		for(IntT i = 0; i < nnStruct->parameterL; i++) {
 			FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
 			FREE(nnStruct->hashedBuckets[i]->hybridChainsStorage);
@@ -1070,11 +1010,18 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 			FREE(nnStruct->hashedBuckets[i]);
 		}
 		FREE(nnStruct->hashedBuckets);
+		*/
 		isFirst = false;
 
 		cnt += pointsCurrent;
 	}
-	
+	for(IntT i = 0; i < nnStruct->parameterL; i++) {
+		FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
+		FREE(nnStruct->hashedBuckets[i]->hybridChainsStorage);
+
+		FREE(nnStruct->hashedBuckets[i]);
+	}
+	FREE(nnStruct->hashedBuckets);
 	FREE(nnStruct);
 	fclose(datasetFile);
 	fclose(indexFile);
@@ -1626,12 +1573,10 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 
 
 	PRNearNeighborStructT nnStruct = getHashedStructure(optParameters, false, true, indexFile);
+	//printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
 
 	Uns32T *mainHashA = NULL, *controlHash1 = NULL;
 	//Uns32T *mainhashABackup = nnStruct->hashedBuckets[0]->mainHashA;
-	printf("**********************\n");
-	printf("query hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
-	printf("**********************\n");
 	PUHashStructureT modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
 
 	if (mainHashA == NULL) {
@@ -1644,7 +1589,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 		modelHT->controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
 	}
 
-	printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\QueryHashStr");
+	//printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\QueryHashStr");
 
 	// Uns32T **(precomputedHashesOfULSHs[nnStruct->nHFTuples]);
 	Uns32T *** precomputedHashesOfULSHs = (Uns32T ***) alloca(nnStruct->nHFTuples * sizeof(Uns32T**));
@@ -1654,7 +1599,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 			FAILIF(NULL == (precomputedHashesOfULSHs[l][i] = (Uns32T*)MALLOC(N_PRECOMPUTED_HASHES_NEEDED * sizeof(Uns32T))));
 		}
 	}
-	printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
+	//printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
 
 	map<Long64T, int> picCount;
 	map<int, int> nnPoints;
@@ -1861,7 +1806,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 
 		if (isEOF) break;
 	}
-	printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
+	//printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
 	fclose(datasetFile);
 	fclose(queryFile);
 	fclose(indexFile);
