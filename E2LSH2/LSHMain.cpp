@@ -57,7 +57,7 @@ double parameterR = 50;
 
 int parameterK = 16;
 
-int parameterL = 40;
+int parameterL = 2;
 
 
 // The value of parameter R (a near neighbor of a point <q> is any
@@ -398,7 +398,7 @@ int old_main(int nargs, char **args){
 // 保存到文件
 const int IGNORE_DIMENSION = 4;
 const int MAX_IN_ONE_BUCKET = 200;
-const int MAX_POINTS_IN_ONE_PASS = 20000;
+const int MAX_POINTS_IN_ONE_PASS = 20000; // 有BUG, 当addToIndex点数大于这个值时就会出错.
 const int MAX_FILE_NAME_LENGTH = 256;
 const int DATASET_FILE_INFO_SIZE = MAX_FILE_NAME_LENGTH * sizeof(char) + sizeof(Long64T) + sizeof(int);
 const int MIN_BUCKET_NUM = 50000;
@@ -417,7 +417,7 @@ typedef struct _pointId
 } PointId;
 PointId pointId;
 
-void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters);
+void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters, bool isAdd=false, int minBucketNum=MIN_BUCKET_NUM, Long64T existNPoints=0);
 void addOnePointToBucket(FILE *fp, int bucketIndex, int pointIndex,Uns32T hValue);
 void initAllDiskBucket(FILE* fp, string dataFileName, Long64T allPointsNum, int pointNumLimit);
 void queryInner(string queryFileName, string indexFileName, RNNParametersT optParameters, string outputFile);
@@ -432,6 +432,9 @@ double computeAlpha(string indexFileName);
 void outputIndexFile(string indexFileName, string outputTextFileName);
 string getFileName(const string& filePath); // c:\a\b.c => b.c
 string getWholeFilePath(const string& filePath, const string& fileName); // c:\a\b.c, d.e => c:\a\d.e
+void addDataSetToIndexDataSet(const string& dataFileName, const string& indexFileName);
+void printHashfunction(PRNearNeighborStructT nnStruct, string name);
+void printUHashStructureT(PUHashStructureT hashS, string name);
 
 /*
 The main entry to LSH package. Depending on the command line
@@ -489,7 +492,7 @@ extern "C" __declspec(dllexport) void setUpIndex(char* dataFileStr, char* indexN
 }
 */
 
-void saveParameter(string indexName, double inputR, double inputW, int inputK, int inputL) {
+void saveParameter(string indexName, double inputR, double inputW, int inputK, int inputL, int theBucketNum) {
 	FILE* indexFile = fopen(indexName.c_str(), "a+b");
 	
 	fseek(indexFile, 0, SEEK_END);
@@ -497,6 +500,7 @@ void saveParameter(string indexName, double inputR, double inputW, int inputK, i
 	fwrite(&inputW, sizeof(inputW), 1, indexFile);
 	fwrite(&inputK, sizeof(inputK), 1, indexFile);
 	fwrite(&inputL, sizeof(inputL), 1, indexFile);
+	fwrite(&theBucketNum, sizeof(theBucketNum), 1, indexFile);
 	fclose(indexFile);
 }
 #ifdef WIN32
@@ -536,19 +540,81 @@ extern "C" void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR/
 	//fclose(fp);
 	string dataFile(dataFileStr), indexName(indexNameStr);
 	setUpIndexFromDataSet(dataFile, indexName, optParameters);
-	saveParameter(indexName, inputR, inputW, inputK, inputL);
+	saveParameter(indexName, inputR, inputW, inputK, inputL, bucketNum);
 }
 
-void getParameter(string indexName, double& inputR, double& inputW, int& inputK, int& inputL) {
+void getParameter(string indexName, double& inputR, double& inputW, int& inputK, int& inputL, int& theBucketNum) {
 	FILE* indexFile = fopen(indexName.c_str(), "rb");
 
-	fseek(indexFile, -((int) sizeof(inputR) + (int) sizeof(inputW) + (int) sizeof(inputK) + (int) sizeof(inputL)), SEEK_END);
+	fseek(indexFile, -((int) sizeof(inputR) + (int) sizeof(inputW) + (int) sizeof(inputK) + (int) sizeof(inputL) + (int)sizeof(theBucketNum)), SEEK_END);
 	fread(&inputR, sizeof(inputR), 1, indexFile);
 	fread(&inputW, sizeof(inputW), 1, indexFile);
 	fread(&inputK, sizeof(inputK), 1, indexFile);
 	fread(&inputL, sizeof(inputL), 1, indexFile);
+	fread(&theBucketNum, sizeof(theBucketNum), 1, indexFile);
 	fclose(indexFile);
 }
+
+// add dataset to the index.
+#ifdef WIN32
+extern "C" __declspec(dllexport) void addToIndex(char* dataFileStr, char* indexNameStr) {
+#else
+extern "C" void addToIndex(char* dataFileStr, char* indexNameStr) {
+#endif // WIN32
+	string dataFileName(dataFileStr);
+	string indexName(indexNameStr);
+
+	/*copy from query*/
+	double inputR, inputW;
+	int inputK, inputL;
+	int theBucketNum;
+	getParameter(indexName, inputR, inputW, inputK, inputL, theBucketNum);
+	RNNParametersT optParameters;
+	optParameters.successProbability = successProbability;
+	optParameters.dimension = pointsDimension;
+	optParameters.parameterR = inputR;
+	optParameters.parameterR2 = SQR(optParameters.parameterR);
+	optParameters.parameterW = inputW;
+	optParameters.typeHT = HT_HYBRID_CHAINS;
+	optParameters.parameterK = inputK;
+	optParameters.parameterL = inputL;
+	optParameters.parameterM = computeLfromKP(optParameters.parameterK, optParameters.successProbability);
+	optParameters.useUfunctions = false;
+	/*********************/
+	
+	FILE* indexFile = fopen(indexName.c_str(), "rb");
+	FAILIF(indexFile == NULL);
+	FILE* dataFile = fopen(dataFileName.c_str(), "rb");
+	FAILIF(dataFile == NULL);
+
+	Long64T indexAllPointsNum = 0;
+	fseek(indexFile, MAX_FILE_NAME_LENGTH * sizeof(char), SEEK_SET);
+	FAILIF(1 != fread(&indexAllPointsNum, sizeof(Long64T), 1, indexFile));
+	
+	Long64T dataAllPointsNum = 0;
+	FAILIF(1 != fread(&dataAllPointsNum, sizeof(Long64T), 1, dataFile));
+	fclose(dataFile);
+	fclose(indexFile);
+
+	// 把数据文件加到index的数据文件中, 并更新index开头的总点数。
+	addDataSetToIndexDataSet(dataFileName, indexName);
+	
+
+	Long64T newAllPointsNum = indexAllPointsNum + dataAllPointsNum;
+	// if 80% full, rehash.
+	if (newAllPointsNum * optParameters.parameterL > MAX_IN_ONE_BUCKET * theBucketNum * 0.8)
+	{
+		setUpIndexFromDataSet(dataFileName, indexName, optParameters, false, theBucketNum * 2);
+		saveParameter(indexName, inputR, inputW, inputK, inputL, bucketNum);
+	}
+	else
+	{
+		setUpIndexFromDataSet(dataFileName, indexName, optParameters, true, theBucketNum, indexAllPointsNum);
+	}
+	
+}
+
+
 
 #ifdef WIN32
 extern "C" __declspec(dllexport) void query(char* queryFileStr, char* indexNameStr, char* outputFileStr) {
@@ -561,7 +627,8 @@ extern "C" void query(char* queryFileStr, char* indexNameStr, char* outputFileSt
 
 	double inputR, inputW;
 	int inputK, inputL;
-	getParameter(indexName, inputR, inputW, inputK, inputL);
+	int theBucketNum;
+	getParameter(indexName, inputR, inputW, inputK, inputL, theBucketNum);
     RNNParametersT optParameters;
 	optParameters.successProbability = successProbability;
 	optParameters.dimension = pointsDimension;
@@ -652,46 +719,66 @@ void convertTextDataFile2BinFile(string textDataFileName) {
 	fclose(binFile);
 }
 */
-/// data
-///
-void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters)
+// parameter isAdd   mark whether the dataset is added to exist index, or setup a new one.
+// parameter minBucketNum    used when setup a new index, as the minimal bucket number of the new index.
+// parameter existNPoints    the number of exist points number when isAdd is true.
+//
+void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters, bool isAdd/*=false*/, int minBucketNum/*=MIN_BUCKET_NUM*/, Long64T existNPoints/*=0*/)
 {
     //convertTextDataFile2BinFile(dataSetFileName);
 	//bucketNum = 
 	//	hashTableSize = bucketNum;
 
 	FILE *datasetFile = fopen(dataSetFileName.c_str(), "rb");
-	FILE *indexFile =fopen(indexFileName.c_str(), "w+b");
 	FAILIF(datasetFile == NULL);
-	FAILIF(indexFile == NULL);
-
 	// the number of dataset files, for the dataset maybe divided into several files if the dataset is too large.
 	Long64T allPointsNum = 0;
 	fread(&allPointsNum, sizeof(Long64T), 1, datasetFile);
 	fread(&pointNumLimit, sizeof(int), 1, datasetFile);
 	int nFiles = allPointsNum / pointNumLimit + 1;
 
-	// calculate the bucket number and hash table size, at lease half full.
-	bucketNum = optParameters.parameterL * (allPointsNum * 2 / MAX_IN_ONE_BUCKET + 1);
-	if (bucketNum < MIN_BUCKET_NUM)
+	FILE *indexFile = 0;
+	PRNearNeighborStructT nnStruct = 0;
+	if (isAdd)
 	{
-		bucketNum = MIN_BUCKET_NUM;
+		indexFile = fopen(indexFileName.c_str(), "r+b");
+		FAILIF(indexFile == NULL);
+		nnStruct = getHashedStructure(optParameters, false, true, indexFile);
+		nnStruct->useUfunctions = false;
+		bucketNum = minBucketNum;
+		hashTableSize = bucketNum;
 	}
-	hashTableSize = bucketNum;
+	else
+	{
+		// calculate the bucket number and hash table size, at lease half full.
+		bucketNum = optParameters.parameterL * (allPointsNum * 2 / MAX_IN_ONE_BUCKET + 1);
+		if (bucketNum < minBucketNum)
+		{
+			bucketNum = minBucketNum;
+		}
+		hashTableSize = bucketNum;
+
+		indexFile = fopen(indexFileName.c_str(), "w+b");
+		FAILIF(indexFile == NULL);
+
+		//初始化文件表
+		initAllDiskBucket(indexFile, dataSetFileName, allPointsNum, pointNumLimit);
+		nnStruct = getHashedStructure(optParameters, true, false, indexFile);
+		nnStruct->useUfunctions = false;
+	}
 
 	bool isFirst = true;
-	int cnt = 0;
-
-	PRNearNeighborStructT nnStruct = getHashedStructure(optParameters, isFirst, false, indexFile);
-	
-	nnStruct->useUfunctions = false;
-	//初始化文件表
-	initAllDiskBucket(indexFile, dataSetFileName, allPointsNum, pointNumLimit);
+	// 已经加入到index的点数, 用来计算点的下标.
+	int cnt = existNPoints;
 
 	Uns32T *mainHashA = NULL, *controlHash1 = NULL;
 
 	double temp[IGNORE_DIMENSION] = {0.0};
 	char buf[12] = {'\0'};
+
+	// skip the header of the dataset file
+	rewind(datasetFile);
+	fseek(datasetFile, sizeof(Long64T) + sizeof(int), SEEK_SET);
 
 	int curFile = 1;
 	while (true) {
@@ -756,7 +843,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 
 		// 得到LSH参数结构
 		optParameters.parameterT = pointsCurrent;
-		PRNearNeighborStructT *nnStructs = NULL;
+		//PRNearNeighborStructT *nnStructs = NULL;
 
 
 		ASSERT(optParameters.typeHT == HT_HYBRID_CHAINS);
@@ -773,19 +860,79 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		}
 
 		// initialize second level hashing (bucket hashing)
+		if (!isAdd)
 		FAILIF(NULL == (nnStruct->hashedBuckets = (PUHashStructureT*)MALLOC(nnStruct->parameterL * sizeof(PUHashStructureT))));
 
 		PUHashStructureT modelHT = NULL;
-		
-		if (isFirst) {
-			modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, FALSE, mainHashA, controlHash1, NULL);
-		} else {
+		///////////////////////////////////////////
+		/*if (isAdd) {
 			modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
+			//if (mainHashA == NULL) {
+			//	printf("mainHashA == NULL\n");
+				mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
+			//}
+			//if (controlHash1 == NULL) {
+			//	printf("controlHash1 == NULL\n");
+				controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
+			//}
 			modelHT->mainHashA = mainHashA;
 			modelHT->controlHash1 = controlHash1;
 		}
+		else {*/
+			if (isFirst) {
+				if (isAdd) {
+					//Uns32T *mainhashABackup = nnStruct->hashedBuckets[0]->mainHashA;
+					mainHashA = NULL;
+					controlHash1 = NULL;
+					printf("**********************\n");
+					printf("add first hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
+					printf("**********************\n");
+					modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
 
+					if (mainHashA == NULL) {
+						mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
+						modelHT->mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
+					}
 
+					if (controlHash1 == NULL) {
+						controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
+						modelHT->controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
+					}
+					/*
+					modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
+					//if (mainHashA == NULL) {
+					//	printf("mainHashA == NULL\n");
+					mainHashA = nnStruct->hashedBuckets[0]->mainHashA;
+					//}
+					//if (controlHash1 == NULL) {
+					//	printf("controlHash1 == NULL\n");
+					controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
+					//}
+					modelHT->mainHashA = mainHashA;
+					modelHT->controlHash1 = controlHash1;*/
+					printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\FirstAddHashStr");
+				}
+				else {
+				
+				modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, FALSE, mainHashA, controlHash1, NULL);
+				printf("**********************\n");
+				printf("first hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
+				printf("**********************\n");
+				printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\FirstHashStr");
+				}
+			} else {
+				modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
+				printf("**********************\n");
+				printf("hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
+				printf("**********************\n");
+				modelHT->mainHashA = mainHashA;
+				modelHT->controlHash1 = controlHash1;
+				printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\HashStr");
+			}
+		/*}*/
+
+		printf("hhelo");
+		//printf("stop1\");
 		// Uns32T **(precomputedHashesOfULSHs[nnStruct->nHFTuples]);
 		Uns32T *** precomputedHashesOfULSHs = (Uns32T ***) alloca(nnStruct->nHFTuples * sizeof(Uns32T**));
 		for(IntT l = 0; l < nnStruct->nHFTuples; l++){
@@ -794,9 +941,19 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 				FAILIF(NULL == (precomputedHashesOfULSHs[l][i] = (Uns32T*)MALLOC(N_PRECOMPUTED_HASHES_NEEDED * sizeof(Uns32T))));
 			}
 		}
+		/*if (isAdd)
+		{
+			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\addNnStruct");
+		}
+		else
+		{
+			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\setupNnStruct");
+		}*/
 
+		//printf("abcdefg\n");/////////////////////
 		for(IntT i = 0; i < pointsCurrent; i++){
 			preparePointAdding(nnStruct, modelHT, dataSetPoints[i]);
+			//printf("aaaaaaaaaa\n");/////////////////////
 			for(IntT l = 0; l < nnStruct->nHFTuples; l++){
 #ifdef MYDEBUG
 				if (i == 0 && l < 10) printf("%d:  ", l);
@@ -868,15 +1025,25 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 
 			// clear the model HT for the next iteration.
 			clearUHashStructure(modelHT);
+			
 		}
 
 		sort(prepareInsert.begin(), prepareInsert.end());
 
+		printf("abcddfsfefef\n");
 		for (int i = 0; i < prepareInsert.size(); i++) {
 			addOnePointToBucket(indexFile, prepareInsert[i].first, prepareInsert[i].second.first, prepareInsert[i].second.second);
 		}
-		if (isFirst) {
+		if (isFirst && !isAdd) {
 			saveHashfunction(nnStruct, indexFile);
+		}
+		if (isAdd)
+		{
+			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\addNnStruct");
+		}
+		else
+		{
+			printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\setupNnStruct");
 		}
 
 		for (int i = 0; i < pointsCurrent; i++) {
@@ -911,6 +1078,138 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 	FREE(nnStruct);
 	fclose(datasetFile);
 	fclose(indexFile);
+}
+
+// add the dataset to the exist dataset of the index, it will also modify the indexFile with the new number of all points.
+// TODO current just support one dataset file ***************************************
+void addDataSetToIndexDataSet(const string& dataFileName, const string& indexFileName)
+{
+	FILE* indexFile = fopen(indexFileName.c_str(), "r+b");
+	FAILIF(indexFile == NULL);
+	FILE* dataFile = fopen(dataFileName.c_str(), "rb");
+	FAILIF(dataFile == NULL);
+
+	char buf[12] = {'\0'};
+
+	Long64T newAllPointsNum = 0;
+	Long64T dataAllPointsNum = 0;
+	int indexLimit = 0;
+	int dataLimit = 0;
+
+	rewind(indexFile);
+	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, indexFile);
+	fread(&newAllPointsNum, sizeof(Long64T), 1, indexFile);
+	fread(&indexLimit, sizeof(int), 1, indexFile);
+	int indexNFiles = newAllPointsNum / indexLimit + 1;
+	int curPos = newAllPointsNum % indexLimit;
+
+	rewind(dataFile);
+	fread(&dataAllPointsNum, sizeof(Long64T), 1, dataFile);
+	fread(&dataLimit, sizeof(int), 1, dataFile);
+	int dataNFiles = dataAllPointsNum / dataLimit + 1;
+
+	newAllPointsNum += dataAllPointsNum;
+	// write the new number of all points into the index file.
+	fseek(indexFile, MAX_FILE_NAME_LENGTH * sizeof(char), SEEK_SET);
+	fwrite(&newAllPointsNum, sizeof(Long64T), 1, indexFile);
+	fclose(indexFile);
+
+	// get dataset file name of the index
+	string indexDataFileName = getWholeFilePath(indexFileName, string(sBuffer));
+	FILE* indexDataFile = fopen(indexDataFileName.c_str(), "r+b");
+	FAILIF(NULL == indexDataFile);
+	fwrite(&newAllPointsNum, sizeof(Long64T), 1, indexDataFile);
+	fseek(indexDataFile, 0, SEEK_END);
+
+	if (indexNFiles > 1)
+	{
+		fclose(indexDataFile);
+		string indexDataPiece = indexDataFileName;
+		sprintf(buf, "%d", indexNFiles);
+		indexDataFile = fopen(indexDataPiece.append(buf).c_str(), "ab");
+		FAILIF(NULL == indexDataFile);
+	}
+
+
+	// read all added data file
+	char* cpBuf = (char*)MALLOC(dataAllPointsNum * DATASET_ONE_ROW_SIZE);
+	char* pcp = cpBuf;
+	FAILIF(dataAllPointsNum != fread(cpBuf, DATASET_ONE_ROW_SIZE, dataAllPointsNum, dataFile));
+	fclose(dataFile);
+
+	int writePoints = 0;
+	while (dataAllPointsNum != 0)
+	{
+		writePoints = dataAllPointsNum + curPos <= indexLimit ? dataAllPointsNum : indexLimit - curPos;
+		FAILIF(writePoints != fwrite(pcp, DATASET_ONE_ROW_SIZE, writePoints, indexDataFile));
+
+		pcp += writePoints;
+		dataAllPointsNum -= writePoints;
+		curPos = 0;
+
+		fclose(indexDataFile);
+		string indexDataPiece = indexDataFileName;
+		sprintf(buf, "%d", ++indexNFiles);
+		indexDataFile = fopen(indexDataPiece.append(buf).c_str(), "ab");
+		FAILIF(NULL == indexDataFile);
+	}
+	FREE(cpBuf);
+	fclose(indexDataFile);
+	printf("end of add dataset to index dataset\n");
+}
+
+void printUHashStructureT(PUHashStructureT hashS, string name)
+{
+	static int i = 0;
+	char buf[12] = {'\0'};
+	sprintf(buf, "%d", ++i);
+	name.append(buf).append(".txt");
+	FILE* fp = fopen(name.c_str(), "wt");
+	for (int j = 0; j < 32; j++) {
+		fprintf(fp, "%u, %u; ", hashS->mainHashA[j], hashS->controlHash1[j]);
+	}
+	fprintf(fp, "\n");
+	fclose(fp);
+}
+
+// for test
+void printHashfunction(PRNearNeighborStructT nnStruct, string name)
+{
+	static int i = 0;
+	char buf[12] = {'\0'};
+	sprintf(buf, "%d", ++i);
+	name.append(buf).append(".txt");
+	FILE* fp = fopen(name.c_str(), "wt");
+
+	LSHFunctionT **lshFunctions = nnStruct->lshFunctions;
+	// allocate memory for the functions
+	// initialize the LSH functions
+	fprintf(fp, "lshFunctions:\n");
+	for(IntT i = 0; i < nnStruct->nHFTuples; i++){
+		fprintf(fp, "fun %d:\n", i);
+		for(IntT j = 0; j < nnStruct->hfTuplesLength; j++){
+			// vector a
+			for(IntT d = 0; d < nnStruct->dimension; d++){
+				//fwrite(&lshFunctions[i][j].a[d], sizeof(lshFunctions[i][j].a[d]), 1, indexFile);
+				fprintf(fp, "%lf, ", lshFunctions[i][j].a[d]);
+			}
+			// b
+			//fwrite(&lshFunctions[i][j].b, sizeof(lshFunctions[i][j].b), 1, indexFile);
+			fprintf(fp, "\nb = %lf\n", lshFunctions[i][j].b);
+		}
+	}
+	fprintf(fp, "mainHashA and controlHash1:\n");
+	for (int i = 0; i < nnStruct->parameterL; i++) {
+		fprintf(fp, "hash %d of L hashes:\n", i);
+		for (int j = 0; j < nnStruct->hashedBuckets[i]->hashedDataLength; j++) {
+			//fwrite(&nnStruct->hashedBuckets[i]->mainHashA[j], sizeof(nnStruct->hashedBuckets[i]->mainHashA[j]), 1, indexFile);
+			//fwrite(&nnStruct->hashedBuckets[i]->controlHash1[j], sizeof(nnStruct->hashedBuckets[i]->controlHash1[j]), 1, indexFile);
+			fprintf(fp, "%u, %u; ", nnStruct->hashedBuckets[i]->mainHashA[j], nnStruct->hashedBuckets[i]->controlHash1[j]);
+		}
+		fprintf(fp, "\n");
+	}
+
+	fclose(fp);
 }
 
 void saveHashfunction(PRNearNeighborStructT nnStruct, FILE* indexFile)
@@ -1330,6 +1629,9 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 
 	Uns32T *mainHashA = NULL, *controlHash1 = NULL;
 	//Uns32T *mainhashABackup = nnStruct->hashedBuckets[0]->mainHashA;
+	printf("**********************\n");
+	printf("query hashTableSize=%d, nnStruct->parameterK=%d\n", hashTableSize, nnStruct->parameterK);
+	printf("**********************\n");
 	PUHashStructureT modelHT = newUHashStructure(HT_LINKED_LIST, hashTableSize, nnStruct->parameterK, TRUE, mainHashA, controlHash1, NULL);
 
 	if (mainHashA == NULL) {
@@ -1341,6 +1643,9 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 		controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
 		modelHT->controlHash1 = nnStruct->hashedBuckets[0]->controlHash1;
 	}
+
+	printUHashStructureT(modelHT, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\QueryHashStr");
+
 	// Uns32T **(precomputedHashesOfULSHs[nnStruct->nHFTuples]);
 	Uns32T *** precomputedHashesOfULSHs = (Uns32T ***) alloca(nnStruct->nHFTuples * sizeof(Uns32T**));
 	for(IntT l = 0; l < nnStruct->nHFTuples; l++){
@@ -1349,6 +1654,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 			FAILIF(NULL == (precomputedHashesOfULSHs[l][i] = (Uns32T*)MALLOC(N_PRECOMPUTED_HASHES_NEEDED * sizeof(Uns32T))));
 		}
 	}
+	printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
 
 	map<Long64T, int> picCount;
 	map<int, int> nnPoints;
@@ -1555,6 +1861,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 
 		if (isEOF) break;
 	}
+	printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
 	fclose(datasetFile);
 	fclose(queryFile);
 	fclose(indexFile);

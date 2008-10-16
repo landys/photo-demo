@@ -58,7 +58,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="E:\projects\photodemo\codes\branches\TRY-refactor\bin\Release\SIFTAPI.lib E:\projects\photodemo\codes\branches\TRY-refactor\bin\Release\E2LSH.lib"
+				AdditionalDependencies="E:\projects\photodemo\codes\branches\TRY-refactor-jni-envelop\bin\Debug\SIFTAPI.lib E:\projects\photodemo\codes\branches\TRY-refactor-jni-envelop\bin\Debug\E2LSH.lib"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -128,7 +128,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="E:\projects\photodemo\codes\branches\TRY-refactor\bin\Release\SIFTAPI.lib E:\projects\photodemo\codes\branches\TRY-refactor\bin\Release\E2LSH.lib"
+				AdditionalDependencies="E:\projects\photodemo\codes\branches\TRY-refactor-jni-envelop\bin\Release\SIFTAPI.lib E:\projects\photodemo\codes\branches\TRY-refactor-jni-envelop\bin\Release\E2LSH.lib"
 				OutputFile="$(OutDir)\$(ProjectName).dll"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
