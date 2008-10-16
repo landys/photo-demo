@@ -8,36 +8,44 @@
 extern "C" {
 #endif
 /*
- * Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
- * Method:    showSift
- * Signature: (Ljava/lang/String;Ljava/lang/String;ID)I
- */
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
+* Method:    showSift
+* Signature: (Ljava/lang/String;Ljava/lang/String;ID)I
+*/
 JNIEXPORT jint JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_showSift
-  (JNIEnv *, jobject, jstring, jstring, jint, jdouble);
+	(JNIEnv *, jobject, jstring, jstring, jint, jdouble);
 
 /*
- * Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
- * Method:    siftImage
- * Signature: (Ljava/lang/String;Ljava/lang/String;ID)I
- */
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
+* Method:    siftImage
+* Signature: (Ljava/lang/String;Ljava/lang/String;IDJ)I
+*/
 JNIEXPORT jint JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_siftImage
-  (JNIEnv *, jobject, jstring, jstring, jint, jdouble);
+	(JNIEnv *, jobject, jstring, jstring, jint, jdouble, jlong);
 
 /*
- * Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
- * Method:    setUpIndex
- * Signature: (Ljava/lang/String;Ljava/lang/String;DDII)V
- */
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
+* Method:    setUpIndex
+* Signature: (Ljava/lang/String;Ljava/lang/String;DDII)V
+*/
 JNIEXPORT void JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_setUpIndex
-  (JNIEnv *, jobject, jstring, jstring, jdouble, jdouble, jint, jint);
+	(JNIEnv *, jobject, jstring, jstring, jdouble, jdouble, jint, jint);
 
 /*
- * Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
- * Method:    query
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
- */
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
+* Method:    addToIndex
+* Signature: (Ljava/lang/String;Ljava/lang/String;)V
+*/
+JNIEXPORT void JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_addToIndex
+	(JNIEnv *, jobject, jstring, jstring);
+
+/*
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
+* Method:    query
+* Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+*/
 JNIEXPORT void JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_query
-  (JNIEnv *, jobject, jstring, jstring, jstring);
+	(JNIEnv *, jobject, jstring, jstring, jstring);
 
 #ifdef __cplusplus
 }

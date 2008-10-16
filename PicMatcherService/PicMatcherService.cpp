@@ -25,7 +25,7 @@ char* jstringTostring(JNIEnv* env, jstring jstr)
 } 
 
 /*
-* Class:     com_picMatcher_PicMatcherImpl
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
 * Method:    showSift
 * Signature: (Ljava/lang/String;Ljava/lang/String;ID)I
 */
@@ -43,23 +43,23 @@ JNIEXPORT jint JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl
 }
 
 /*
-* Class:     com_picMatcher_PicMatcherImpl
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
 * Method:    siftImage
 * Signature: (Ljava/lang/String;Ljava/lang/String;ID)I
 */
 JNIEXPORT jint JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_siftImage
-(JNIEnv * env, jobject object, jstring imagename, jstring out_file_name, jint img_dbl, jdouble contr_thr)
+(JNIEnv * env, jobject object, jstring imagename, jstring out_file_name, jint img_dbl, jdouble contr_thr, jlong id)
 {
 	char* myImagename = jstringTostring(env, imagename);
 	char* myOut_file_name = jstringTostring(env, out_file_name);
-	int re = siftImage(myImagename, myOut_file_name, img_dbl, contr_thr);
+	int re = siftImage(myImagename, myOut_file_name, img_dbl, contr_thr, id);
 	free(myImagename);
 	free(myOut_file_name);
 	return re;
 }
 
 /*
-* Class:     com_picMatcher_PicMatcherImpl
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
 * Method:    setUpIndex
 * Signature: (Ljava/lang/String;Ljava/lang/String;DDII)V
 */
@@ -74,7 +74,22 @@ JNIEXPORT void JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl
 }
 
 /*
-* Class:     com_picMatcher_PicMatcherImpl
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
+* Method:    addToIndex
+* Signature: (Ljava/lang/String;Ljava/lang/String;)V
+*/
+JNIEXPORT void JNICALL Java_com_netease_space_antispam_picmatcher_PicMatcherImpl_addToIndex
+(JNIEnv * env, jobject object, jstring dataFile, jstring index)
+{
+	char* myDataFile = jstringTostring(env, dataFile);
+	char* myIndex = jstringTostring(env, index);
+	addToIndex(myDataFile, myIndex);
+	free(myDataFile);
+	free(myIndex);
+}
+
+/*
+* Class:     com_netease_space_antispam_picmatcher_PicMatcherImpl
 * Method:    query
 * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 */

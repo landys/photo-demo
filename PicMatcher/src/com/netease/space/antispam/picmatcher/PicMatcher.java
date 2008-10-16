@@ -15,11 +15,21 @@ public interface PicMatcher {
     void setupIndex(final String path);
 
     /**
+     * Add the image to the established index.
+     * 
+     * @param fileName
+     *            the image file to be added to the index.
+     * @param id
+     *            the id of the file.
+     */
+    void addToIndex(final String fileName, final long id);
+
+    /**
      * Query the image file is in the index library.
      * 
      * @param fileName
      *            the image file to be queried.
-     * @return true if the file is in the index library; otherwise false.
+     * @return id of the matched file in the index; otherwise -1.
      */
-    boolean query(final String fileName);
+    long query(final String fileName);
 }

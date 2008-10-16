@@ -398,7 +398,7 @@ int old_main(int nargs, char **args){
 // 保存到文件
 const int IGNORE_DIMENSION = 4;
 const int MAX_IN_ONE_BUCKET = 200;
-const int MAX_POINTS_IN_ONE_PASS = 20000; // 有BUG, 当addToIndex点数大于这个值时就会出错.
+const int MAX_POINTS_IN_ONE_PASS = 20000;
 const int MAX_FILE_NAME_LENGTH = 256;
 const int DATASET_FILE_INFO_SIZE = MAX_FILE_NAME_LENGTH * sizeof(char) + sizeof(Long64T) + sizeof(int);
 const int MIN_BUCKET_NUM = 50000;
@@ -1102,7 +1102,6 @@ void addDataSetToIndexDataSet(const string& dataFileName, const string& indexFil
 	}
 	FREE(cpBuf);
 	fclose(indexDataFile);
-	printf("end of add dataset to index dataset\n");
 }
 
 void printUHashStructureT(PUHashStructureT hashS, string name)
@@ -1626,7 +1625,6 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 		fread(&(pointId.index), sizeof(int), 1, queryFile);
 
 		if ((prevFile != -1 && currentFile != prevFile) || isEOF) {
-			printf("One file end\n");
 			/*int sBufferSize = 0;
 			while (sBuffer[sBufferSize] != '\0') sBufferSize++;
 			for (int j = sBufferSize - 1; j >= 0; j--) {

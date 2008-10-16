@@ -207,7 +207,7 @@ void printOutput(string outName, string outtextName)
 
 void testE2LSH()
 {
-	
+	/*
 	int n1 = siftImage("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\1.jpg", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", 1, 0.04, 55);
 	int n2 = showSift("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_img_files", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints", 1, 0.04);
 	int n3 = siftImage("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\3.jpg", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", 1, 0.04, 44);
@@ -237,6 +237,10 @@ void testE2LSH()
 	
 	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out");
 	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out.txt");
+*/
+	printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\add_keypoints",
+		"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\add_keypoints.txt");
+
 }
 
 // add the dataset to the exist dataset of the index, it will also modify the indexFile with the new number of all points.
