@@ -656,8 +656,10 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 	}
 	printMemory("set7:");
 	for(IntT i = 0; i < nnStruct->parameterL; i++) {
-		FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
-		FREE(nnStruct->hashedBuckets[i]->hybridChainsStorage);
+		if (!isAdd) {
+			FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
+			FREE(nnStruct->hashedBuckets[i]->hybridChainsStorage);
+		}
 
 		FREE(nnStruct->hashedBuckets[i]);
 	}
