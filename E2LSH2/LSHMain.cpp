@@ -72,7 +72,7 @@ char sBuffer[512];
 // 保存到文件
 const int IGNORE_DIMENSION = 4;
 const int MAX_IN_ONE_BUCKET = 200;
-const int MAX_POINTS_IN_ONE_PASS = 10000;
+int MAX_POINTS_IN_ONE_PASS = 10000;
 const int MAX_FILE_NAME_LENGTH = 256;
 const int DATASET_FILE_INFO_SIZE = MAX_FILE_NAME_LENGTH * sizeof(char) + sizeof(Long64T) + sizeof(int);
 const int MIN_BUCKET_NUM = 50000;
@@ -211,6 +211,7 @@ extern "C" void addToIndex(char* dataFileStr, char* indexNameStr) {
 	optParameters.parameterL = inputL;
 	optParameters.parameterM = computeLfromKP(optParameters.parameterK, optParameters.successProbability);
 	optParameters.useUfunctions = false;
+	MAX_POINTS_IN_ONE_PASS = 500;
 	/*********************/
 	
 	FILE* indexFile = fopen(indexName.c_str(), "rb");
@@ -272,6 +273,7 @@ extern "C" void query(char* queryFileStr, char* indexNameStr, char* outputFileSt
 	optParameters.parameterL = inputL;
 	optParameters.parameterM = computeLfromKP(optParameters.parameterK, optParameters.successProbability);
 	optParameters.useUfunctions = false;
+	MAX_POINTS_IN_ONE_PASS = 500;
 
 	queryInner(queryFile, indexName, optParameters, outputFile);
 
