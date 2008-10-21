@@ -335,7 +335,7 @@ public class PicMatcherImpl implements PicMatcher {
                     .println(">java -jar PicMatcher.jar 3 \"E:\\testpics\\heads\\2.jpg\"");
             return;
         }
-        PicMatcherImpl matcher = new PicMatcherImpl("E:/projects/photodemo/codes/branches/TRY-refactor-jni-envelop/bin/Release/data");
+        PicMatcherImpl matcher = new PicMatcherImpl("./data");
         if ("1".equals(args[0].trim())) {
             // set up index
             matcher.setupIndex(args[1]);
