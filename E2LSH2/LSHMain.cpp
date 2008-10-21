@@ -91,7 +91,7 @@ typedef struct _pointId
 } PointId;
 PointId pointId;
 
-//#define MEMORY_DEBUG // for print debug information
+#define MEMORY_DEBUG // for print debug information
 
 #define PRINT_MEMORY(pre) {printf("%s used memory = %d\n", pre, totalAllocatedMemory);}
 
@@ -367,6 +367,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 	//bucketNum = 
 	//	hashTableSize = bucketNum;
 
+	printMemory("set1:");
 	FILE *datasetFile = fopen(dataSetFileName.c_str(), "rb");
 	FAILIF(datasetFile == NULL);
 	// the number of dataset files, for the dataset maybe divided into several files if the dataset is too large.
@@ -621,15 +622,17 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		if (isFirst && !isAdd) {
 			saveHashfunction(nnStruct, indexFile);
 		}
-
+		printMemory("set2:");
 		for (int i = 0; i < pointsCurrent; i++) {
 			FREE(dataSetPoints[i]->coordinates);
 			FREE(dataSetPoints[i]);
 		}
+		printMemory("set3:");
 
 		FREE(dataSetPoints);
+		printMemory("set4:");
 		freeUHashStructure(modelHT, FALSE); // do not free the uhash functions since they are used by nnStruct->hashedBuckets[i]
-
+		printMemory("set5:");
 		// freeing precomputedHashesOfULSHs
 		for(IntT l = 0; l < nnStruct->nHFTuples; l++){
 			for(IntT i = 0; i < pointsCurrent; i++){
@@ -637,7 +640,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 			}
 			FREE(precomputedHashesOfULSHs[l]);
 		}
-		
+		printMemory("set6:");
 		/*
 		for(IntT i = 0; i < nnStruct->parameterL; i++) {
 			FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
@@ -651,14 +654,17 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 
 		cnt += pointsCurrent;
 	}
+	printMemory("set7:");
 	for(IntT i = 0; i < nnStruct->parameterL; i++) {
 		FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
 		FREE(nnStruct->hashedBuckets[i]->hybridChainsStorage);
 
 		FREE(nnStruct->hashedBuckets[i]);
 	}
+	printMemory("set8:");
 	FREE(nnStruct->hashedBuckets);
 	FREE(nnStruct);
+	printMemory("set9:");
 	fclose(datasetFile);
 	fclose(indexFile);
 }
