@@ -91,7 +91,7 @@ typedef struct _pointId
 } PointId;
 PointId pointId;
 
-#define MEMORY_DEBUG // for print debug information
+//#define MEMORY_DEBUG // for print debug information
 
 #define PRINT_MEMORY(pre) {printf("%s used memory = %d\n", pre, totalAllocatedMemory);}
 
@@ -655,13 +655,12 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		cnt += pointsCurrent;
 	}
 	printMemory("set7:");
-	for(IntT i = 0; i < nnStruct->parameterL; i++) {
-		if (!isAdd) {
+	if (!isAdd) {
+		for(IntT i = 0; i < nnStruct->parameterL; i++) {
 			FREE(nnStruct->hashedBuckets[i]->hashTable.hybridHashTable);
 			FREE(nnStruct->hashedBuckets[i]->hybridChainsStorage);
+			FREE(nnStruct->hashedBuckets[i]);
 		}
-
-		FREE(nnStruct->hashedBuckets[i]);
 	}
 	printMemory("set8:");
 	FREE(nnStruct->hashedBuckets);
