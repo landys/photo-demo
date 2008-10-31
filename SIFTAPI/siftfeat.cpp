@@ -145,12 +145,14 @@ extern "C" int siftImage(const char* imagename, const char* out_file_name, int i
 	FAILIF(outfile == NULL);
 	fseek(outfile, sizeof(Long64T)+sizeof(int), SEEK_SET); // for file header about the datasets
 
-	struct feature* pfeatures;
+	struct feature* pfeatures = 0;
 
 	int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr);
-	saveOneImageFeatures(pfeatures, n, id);
+	if (n > 0) {
+		saveOneImageFeatures(pfeatures, n, id);
+		allPointsNum += n;
+	}
 	FREE(pfeatures);
-	allPointsNum += n;
 
 	saveAndCloseOutFileHeader();
 	
