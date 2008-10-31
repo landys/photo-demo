@@ -132,8 +132,12 @@ public class PicMatcherImpl implements PicMatcher {
         File index = new File(indexName);
         File output = new File(setupIndexKeypointsFile);
 
-        showSift(temp.getAbsolutePath(), output.getAbsolutePath(), imgDbl,
-                contrThr);
+        if (showSift(temp.getAbsolutePath(), output.getAbsolutePath(), imgDbl,
+                contrThr) <= 0) {
+            System.out.println("No images selected or read, no index to be created.");
+            return;
+        }
+        
         setUpIndex(output.getAbsolutePath(), index.getAbsolutePath(), 0.0, 0.0,
                 0, 0);
     }
@@ -154,8 +158,12 @@ public class PicMatcherImpl implements PicMatcher {
         File index = new File(indexName);
         File addKeypoints = new File(addToIndexKeypointsFile);
 
-        siftImage(queryImage.getAbsolutePath(), addKeypoints.getAbsolutePath(),
-                imgDbl, contrThr, id);
+        if (siftImage(queryImage.getAbsolutePath(), addKeypoints.getAbsolutePath(),
+                imgDbl, contrThr, id) <= 0) {
+            System.out.println("The image not exist or cannot be read.");
+            return;
+        }
+
         addToIndex(addKeypoints.getAbsolutePath(), index.getAbsolutePath());
     }
 
@@ -173,8 +181,12 @@ public class PicMatcherImpl implements PicMatcher {
         File output = new File(outputFile);
         File queryKeypoints = new File(queryKeypointsFile);
 
-        siftImage(queryImage.getAbsolutePath(), queryKeypoints
-                .getAbsolutePath(), imgDbl, contrThr, 0);
+        if (siftImage(queryImage.getAbsolutePath(), queryKeypoints
+                .getAbsolutePath(), imgDbl, contrThr, 0) <= 0) {
+            System.out.println("The image not exist or cannot be read.");
+            return -1;
+        }
+        
         query(queryKeypoints.getAbsolutePath(), index.getAbsolutePath(), output
                 .getAbsolutePath());
 
