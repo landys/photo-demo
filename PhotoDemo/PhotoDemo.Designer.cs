@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.grpIndex = new System.Windows.Forms.GroupBox();
+            this.btnAddToIndex = new System.Windows.Forms.Button();
             this.parameters = new System.Windows.Forms.GroupBox();
             this.txtContrThr = new System.Windows.Forms.TextBox();
             this.txtImgDbl = new System.Windows.Forms.TextBox();
@@ -76,6 +77,7 @@
             // 
             // grpIndex
             // 
+            this.grpIndex.Controls.Add(this.btnAddToIndex);
             this.grpIndex.Controls.Add(this.parameters);
             this.grpIndex.Controls.Add(this.btnCreateIndex);
             this.grpIndex.Controls.Add(this.label4);
@@ -89,6 +91,17 @@
             this.grpIndex.TabIndex = 0;
             this.grpIndex.TabStop = false;
             this.grpIndex.Text = "Create Index";
+            // 
+            // btnAddToIndex
+            // 
+            this.btnAddToIndex.Enabled = false;
+            this.btnAddToIndex.Location = new System.Drawing.Point(578, 67);
+            this.btnAddToIndex.Name = "btnAddToIndex";
+            this.btnAddToIndex.Size = new System.Drawing.Size(112, 23);
+            this.btnAddToIndex.TabIndex = 8;
+            this.btnAddToIndex.Text = "Add To Index";
+            this.btnAddToIndex.UseVisualStyleBackColor = true;
+            this.btnAddToIndex.Click += new System.EventHandler(this.btnAddToIndex_Click);
             // 
             // parameters
             // 
@@ -459,7 +472,6 @@
             this.MaximizeBox = false;
             this.Name = "ImageDemo";
             this.Text = "ImageDemo";
-            this.Load += new System.EventHandler(this.ImageDemo_Load);
             this.grpIndex.ResumeLayout(false);
             this.grpIndex.PerformLayout();
             this.parameters.ResumeLayout(false);
@@ -513,6 +525,7 @@
         private System.Windows.Forms.TextBox txtImgDbl;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.Button btnAddToIndex;
     }
 }
 

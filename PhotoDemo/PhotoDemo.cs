@@ -14,20 +14,26 @@ namespace PhotoDemo
     {
         private static string currDir = Environment.CurrentDirectory;
         private static string dataDir = currDir + "\\data";
-        private static string keypointFileForIndex = dataDir + "\\keypointIndex";
+        private static string keypointFileTemp = indexDir + "\\keypointTemp";
         private static string keypointFileForMatch = dataDir + "\\keypointMatch";
         private static string indexDir = dataDir + "\\indexes";
         private static string initEigsFile = dataDir + "\\eigs.txt";
         private static string indexInfoFile = indexDir + "\\indexInfo.txt";
+        private static string keypointFileForIndex = indexDir + "\\keypointIndex"; // i.e. keypointIndex1, begin from 1.
         private static string indexFilePre = indexDir + "\\index"; // i.e. index1, begin from 1.
         private static string imgsForIndexFile = dataDir + "\\imgsForIndex.txt";
         private static string imgsForMatchFile = dataDir + "\\imgsForMatch.txt";
         private static string outputImgFile = dataDir + "\\outputImg.txt";
+        private static string configFile = dataDir + "\\config.txt";
+        private static string mapFile = indexDir + "\\fileNameMap.txt";
         private static Boolean imgFlag = false;
 
         private static int indexCount = 0;
         private static int MIN_MATCH = 10;
+        private static Dictionary<long, string> fileNameMap;
 
+        private int maxImageId;
+        
         /// <summary>
         /// Constructor. Initialize data, components and result directories.
         /// </summary>
@@ -79,6 +85,34 @@ namespace PhotoDemo
 
             }
 
+            // file name map used for show
+            fileNameMap = new Dictionary<long,string>();
+            if (File.Exists(mapFile))
+            {
+                try
+                {
+                    using (StreamReader sr = new StreamReader(mapFile))
+                    {
+                        string s = null;
+                        while ((s = sr.ReadLine()) != null) 
+                        {
+                            int i = s.IndexOf(' ');
+                            if (i == -1)
+                            {
+                                continue;
+                            }
+                            fileNameMap.Add(int.Parse(s.Substring(0, i)), s.Substring(i + 1));
+                        }
+                       
+                        sr.Close();
+                    }
+                }
+                catch (Exception e)
+                {
+                    // Do nothing.
+                }
+            }
+
             // Initialize componenets.
             InitializeComponent();
 
@@ -113,25 +147,32 @@ namespace PhotoDemo
             dlgOpenImage.Filter = "jpeg (*.jpg;*.jpeg;*.jpe;*.jfif)|*.jpg;*.jpeg;*.jpe;*.jfif|All Image files|*.jpg;*.jpeg;*.jpe;*.jfif;*.gif;*.png;*.bmp;*.ico;*.tif;*.tiff|All files (*.*)|*.*";
             dlgOpenImage.FilterIndex = 2;
             dlgOpenImage.Multiselect = true;
+            
             if (dlgOpenImage.ShowDialog() == DialogResult.OK)
             {
                 StreamWriter sw = File.CreateText(imgsForIndexFile);
-                
+
+                int imgIndex = MaxImageId;
                 if (dlgOpenImage.FileNames != null)
                 {
                     for (int i = 0; i < dlgOpenImage.FileNames.Length; i++)
                     {
-                        sw.WriteLine(dlgOpenImage.FileNames[i]);
+                        sw.WriteLine("{0} {1}", ++imgIndex, dlgOpenImage.FileNames[i]);
                     }
                     txtInfo.Text = dlgOpenImage.FileNames.Length + " files selected.";
                 }
                 else
                 {
-                    sw.WriteLine(dlgOpenImage.FileName);
+                    
+                    sw.WriteLine("{0} {1}", ++imgIndex, dlgOpenImage.FileName);
+                    
                     txtInfo.Text = "1 file selected.";
                 }
 
+                MaxImageId = imgIndex;
+
                 btnCreateIndex.Enabled = true;
+                btnAddToIndex.Enabled = true;
 
                 sw.Close();
             }
@@ -154,30 +195,34 @@ namespace PhotoDemo
                 int nFiles = jpgFiles.Length + gifFiles.Length + pngFiles.Length + bmpFiles.Length;
                 if (nFiles > 0)
                 {
+                    int imgIndex = MaxImageId;
                     StreamWriter sw = File.CreateText(imgsForIndexFile);
                     for (int i = 0; i < jpgFiles.Length; i++)
                     {
-                        sw.WriteLine(jpgFiles[i]);
+                        sw.WriteLine("{0} {1}", ++imgIndex, jpgFiles[i]);
                     }
                     for (int i = 0; i < gifFiles.Length; i++)
                     {
-                        sw.WriteLine(gifFiles[i]);
+                        sw.WriteLine("{0} {1}", ++imgIndex, gifFiles[i]);
                     }
                     for (int i = 0; i < pngFiles.Length; i++)
                     {
-                        sw.WriteLine(pngFiles[i]);
+                        sw.WriteLine("{0} {1}", ++imgIndex, pngFiles[i]);
                     }
                     for (int i = 0; i < bmpFiles.Length; i++)
                     {
-                        sw.WriteLine(bmpFiles[i]);
+                        sw.WriteLine("{0} {1}", ++imgIndex, bmpFiles[i]);
                     }
+                    MaxImageId = imgIndex;
 
                     sw.Close();
                     btnCreateIndex.Enabled = true;
+                    btnAddToIndex.Enabled = true;
                 }
                 else
                 {
                     btnCreateIndex.Enabled = false;
+                    btnAddToIndex.Enabled = false;
                 }
                 txtInfo.Text = nFiles + " file" + (nFiles > 1 ? "s" : "") + " selected.";
             }
@@ -214,26 +259,30 @@ namespace PhotoDemo
             if (!File.Exists(imgsForIndexFile))
             {
                 btnCreateIndex.Enabled = false;
+                btnAddToIndex.Enabled = false;
                 MessageBox.Show("\"" + imgsForIndexFile + "\" not exists", "Error Message");
                 return;
             }
             btnCreateIndex.Enabled = false;
+            btnAddToIndex.Enabled = false;
             Int32 imgDbl = Int32.Parse(txtImgDbl.Text);
             // imgDbl can only be 0/1.
             if (imgDbl != 0)
             {
                 imgDbl = 1;
             }
-            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileForIndex.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
+            string keypointFile = keypointFileForIndex + ++indexCount;
+            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFile.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
             {
                 MessageBox.Show("Create SIFT error.");
                 btnCreateIndex.Enabled = true;
+                btnAddToIndex.Enabled = true;
                 return;
             }
-            string file = indexFilePre + ++indexCount;
+            string file = indexFilePre + indexCount;
             try
             {
-                ServiceApi.setUpIndex(keypointFileForIndex.ToCharArray(), file.ToCharArray(), Double.Parse(txtBoxR.Text), Double.Parse(txtBoxW.Text), Int32.Parse(txtBoxK.Text), Int32.Parse(txtBoxL.Text));
+                ServiceApi.setUpIndex(keypointFile.ToCharArray(), file.ToCharArray(), Double.Parse(txtBoxR.Text), Double.Parse(txtBoxW.Text), Int32.Parse(txtBoxK.Text), Int32.Parse(txtBoxL.Text));
             }
             catch (FormatException fe)
             {
@@ -246,6 +295,8 @@ namespace PhotoDemo
             StreamWriter sw = File.CreateText(indexInfoFile);
             sw.WriteLine(indexCount);
             sw.Close();
+
+            addToFileNameMap(imgsForIndexFile);
 
             if (File.Exists(file))
             {
@@ -269,6 +320,7 @@ namespace PhotoDemo
                 }
             }
             btnCreateIndex.Enabled = true;
+            btnAddToIndex.Enabled = true;
         }
 
         private void picTransfer_Click(object sender, EventArgs e)
@@ -319,6 +371,7 @@ namespace PhotoDemo
             if (!File.Exists(imgsForMatchFile))
             {
                 btnCreateIndex.Enabled = false;
+                btnAddToIndex.Enabled = false;
                 MessageBox.Show("\"" + imgsForMatchFile + "\" not exists", "Error Message");
                 return;
             }
@@ -327,6 +380,7 @@ namespace PhotoDemo
             if (!File.Exists(file))
             {
                 btnCreateIndex.Enabled = false;
+                btnAddToIndex.Enabled = false;
                 MessageBox.Show("Index file \"" + file + "\" not exists", "Error Message");
                 return;
             }
@@ -372,38 +426,34 @@ namespace PhotoDemo
             {
                 try
                 {
-                    using (StreamReader sr = new StreamReader(outputImgFile))
+                    using (FileStream fs = File.OpenRead(outputImgFile))
                     {
-
-                        string line;
-                        while ((line = sr.ReadLine()) != null)
+                        long id = readLongNativeEndian(fs);
+                        int matchNumber = readIntNativeEndian(fs);
+                        while (!(id == -1 && matchNumber == -1))
                         {
-                            string[] ss = line.Split(new Char[]{'*'});
-                            for (int i = 1; i < ss.Length; i += 2)
+                            string fn = fileNameMap[id];
+                            if (File.Exists(fn) && matchNumber > MIN_MATCH)
                             {
-                                string fn = ss[i-1].Trim();
-                                int matchNumber = int.Parse(ss[i].Trim());
-                                if (File.Exists(fn) && matchNumber > MIN_MATCH)
-                                {
+                                Image img = Image.FromFile(fn);
+                                PictureBox pic = new PictureBox();
+                                pic.Size = new System.Drawing.Size(110, 130);
+                                pic.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+                                pic.Image = img;
+                                panMatchImages.Controls.Add(pic);
+                                Label lb = new Label();
+                                lb.Size = new System.Drawing.Size(50, 130);
+                                lb.TextAlign = ContentAlignment.MiddleCenter;
+                                lb.Text = matchNumber.ToString();
+                                panMatchImages.Controls.Add(lb);
+                                //group.CreateControl();
 
-                                    Image img = Image.FromFile(fn);
-                                    PictureBox pic = new PictureBox();
-                                    pic.Size = new System.Drawing.Size(110, 130);
-                                    pic.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-                                    pic.Image = img;
-                                    panMatchImages.Controls.Add(pic);
-                                    Label lb = new Label();
-                                    lb.Size = new System.Drawing.Size(50, 130);
-                                    lb.TextAlign = ContentAlignment.MiddleCenter;
-                                    lb.Text = ss[i];
-                                    panMatchImages.Controls.Add(lb);
-                                    //group.CreateControl();
-
-                                }
-                            }   
+                            }
+                            id = readLongNativeEndian(fs);
+                            matchNumber = readIntNativeEndian(fs);
                         }
                         
-                        sr.Close();
+                        fs.Close();
                     }
                 }
                 catch (Exception ex)
@@ -429,10 +479,137 @@ namespace PhotoDemo
             return ret;
         }
 
-        private void ImageDemo_Load(object sender, EventArgs e)
+        private void btnAddToIndex_Click(object sender, EventArgs e)
         {
+            if (cmbMatch.Items.Count == 0)
+            {
+                btnCreateIndex_Click(null, null);
+                return;
+            }
 
+            if (!File.Exists(imgsForIndexFile))
+            {
+                btnCreateIndex.Enabled = false;
+                btnAddToIndex.Enabled = false;
+                MessageBox.Show("\"" + imgsForIndexFile + "\" not exists", "Error Message");
+                return;
+            }
+            
+            string file = indexFilePre + (cmbMatch.SelectedIndex + 1);
+
+            btnCreateIndex.Enabled = false;
+            btnAddToIndex.Enabled = false;
+            Int32 imgDbl = Int32.Parse(txtImgDbl.Text);
+            // imgDbl can only be 0/1.
+            if (imgDbl != 0)
+            {
+                imgDbl = 1;
+            }
+            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileTemp.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
+            {
+                MessageBox.Show("Create SIFT error.");
+                btnCreateIndex.Enabled = true;
+                btnAddToIndex.Enabled = true;
+                return;
+            }
+            
+            try
+            {
+                ServiceApi.addToIndex(keypointFileTemp.ToCharArray(), file.ToCharArray());
+            }
+            catch (FormatException fe)
+            {
+                MessageBox.Show("Parameters must be a number");
+            }
+            catch (OverflowException ofe)
+            {
+                MessageBox.Show("Parameters is out of range");
+            }
+
+            addToFileNameMap(imgsForIndexFile);
+
+            btnCreateIndex.Enabled = true;
+            btnAddToIndex.Enabled = true;
         }
 
+        public int MaxImageId
+        {
+            get 
+            {
+                if (File.Exists(configFile))
+                {
+                    using (StreamReader sw = File.OpenText(configFile))
+                    {
+                        string s = sw.ReadLine();
+                        maxImageId = int.Parse(s);
+                        sw.Close();
+                    }
+                  
+                }
+                else
+                {
+                    maxImageId = 0;
+                }
+                
+
+                return maxImageId; 
+            }
+            set 
+            {
+                maxImageId = value;
+                using (StreamWriter sw = File.CreateText(configFile))
+                {
+                    sw.WriteLine(maxImageId);
+                    sw.Close();
+                }
+                 
+            }
+        }
+
+
+        private long readLongNativeEndian(FileStream fs) {
+
+            // 8 bytes
+            long accum = 0;
+            for (int shiftBy = 0; shiftBy < 64; shiftBy += 8) {
+                // must cast to long or shift done modulo 32
+                accum |= (long) (fs.ReadByte() & 0xff) << shiftBy;
+            }
+
+            return accum;
+        }
+
+
+        private int readIntNativeEndian(FileStream fs) {
+
+            // 4 bytes
+            int accum = 0;
+            for (int shiftBy = 0; shiftBy < 32; shiftBy += 8) {
+                accum |= (fs.ReadByte() & 0xff) << shiftBy;
+            }
+            return accum;
+        }
+
+        private void addToFileNameMap(string imageFile)
+        {
+            StreamWriter sw = File.AppendText(mapFile);
+            using (StreamReader sr = File.OpenText(imageFile)) 
+            {
+                string s = "";
+                while ((s = sr.ReadLine()) != null) 
+                {
+                    int i = s.IndexOf(' ');
+                    if (i == -1)
+                    {
+                        continue;
+                    }
+                    fileNameMap.Add(int.Parse(s.Substring(0, i)), s.Substring(i+1));
+                    sw.WriteLine(s);
+                }
+                sr.Close();
+                sw.Close();
+            }
+
+        }
     }
 }
