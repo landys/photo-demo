@@ -24,6 +24,9 @@ that accompanied this distribution.
 #include <cxcore.h>
 #include <cv.h>
 #include <time.h>
+#include <queue>
+#include <functional>
+using namespace std;
 
 /************************* Local Function Prototypes *************************/
 
@@ -32,9 +35,9 @@ IplImage* convert_to_gray32( IplImage* );
 IplImage*** build_gauss_pyr( IplImage*, int, int, double );
 IplImage* downsample( IplImage* );
 IplImage*** build_dog_pyr( IplImage***, int, int );
-CvSeq* scale_space_extrema( IplImage***, int, int, double, int, CvMemStorage*);
+CvSeq* scale_space_extrema( IplImage***, int, int, double, int, CvMemStorage*, int);
 int is_extremum( IplImage***, int, int, int, int );
-struct feature* interp_extremum( IplImage***, int, int, int, int, int, double);
+struct feature* interp_extremum( IplImage***, int, int, int, int, int, double, double* );
 void interp_step( IplImage***, int, int, int, int, double*, double*, double* );
 CvMat* deriv_3D( IplImage***, int, int, int, int );
 CvMat* hessian_3D( IplImage***, int, int, int, int );
@@ -43,12 +46,12 @@ struct feature* new_feature( void );
 int is_too_edge_like( IplImage*, int, int, int );
 void calc_feature_scales( CvSeq*, double, int );
 void adjust_for_img_dbl( CvSeq* );
-void calc_feature_oris( CvSeq*, IplImage*** );
+void calc_feature_oris( CvSeq*, IplImage***, int);
 double* ori_hist( IplImage*, int, int, int, int, double );
 int calc_grad_mag_ori( IplImage*, int, int, double*, double* );
 void smooth_ori_hist( double*, int );
-double dominant_ori( double*, int );
-void add_good_ori_features( CvSeq*, double*, int, double, struct feature* );
+double dominant_ori( double*, int, int*);
+void add_good_ori_features( CvSeq*, vector<feature*>*, double*, int, double, struct feature*, int );
 struct feature* clone_feature( struct feature* );
 void compute_descriptors( CvSeq*, IplImage***, int, int );
 double*** descr_hist( IplImage*, int, int, double, double, int, int );
@@ -77,7 +80,7 @@ int sift_features( IplImage* img, struct feature** feat,  FILE* fpLog )
 {
 	return _sift_features( img, feat, SIFT_INTVLS, SIFT_SIGMA, SIFT_CONTR_THR,
 							SIFT_CURV_THR, SIFT_IMG_DBL, SIFT_DESCR_WIDTH,
-							SIFT_DESCR_HIST_BINS, fpLog );
+							SIFT_DESCR_HIST_BINS, fpLog, 100);
 }
 
 
@@ -109,7 +112,7 @@ detected features are stored in the array pointed to by \a feat.
 */
 int _sift_features( IplImage* img, struct feature** feat, int intvls,
 				   double sigma, double contr_thr, int curv_thr,
-				   int img_dbl, int descr_width, int descr_hist_bins, FILE* fpLog  )
+				   int img_dbl, int descr_width, int descr_hist_bins, FILE* fpLog, int n_max  )
 {
 	IplImage* init_img;
 	IplImage*** gauss_pyr, *** dog_pyr;
@@ -141,7 +144,7 @@ int _sift_features( IplImage* img, struct feature** feat, int intvls,
 	storage = cvCreateMemStorage( 0 );
 	bt = clock();
 	features = scale_space_extrema( dog_pyr, octvs, intvls, contr_thr,
-		curv_thr, storage );
+		curv_thr, storage, n_max );
 	fprintf(fpLog, "%-7ld ", clock() - bt);
 	bt = clock();
 	calc_feature_scales( features, sigma, intvls );
@@ -153,7 +156,7 @@ int _sift_features( IplImage* img, struct feature** feat, int intvls,
 		fprintf(fpLog, "%-7ld ", clock() - bt);
 	}
 	bt = clock();
-	calc_feature_oris( features, gauss_pyr );
+	calc_feature_oris( features, gauss_pyr, n_max );
 	fprintf(fpLog, "%-7ld ", clock() - bt);
 	bt = clock();
 	compute_descriptors( features, gauss_pyr, descr_width, descr_hist_bins );
@@ -373,13 +376,15 @@ based on contrast and ratio of principal curvatures.
 */
 CvSeq* scale_space_extrema( IplImage*** dog_pyr, int octvs, int intvls,
 						   double contr_thr, int curv_thr,
-						   CvMemStorage* storage )
+						   CvMemStorage* storage, int n_max)
 {
 	CvSeq* features;
 	double prelim_contr_thr = 0.5 * contr_thr / intvls;
 	struct feature* feat;
 	struct detection_data* ddata;
 	int o, i, r, c;
+	double calc_contr;
+	priority_queue<pair<double, feature*>, deque<pair<double, feature*> >, greater<pair<double, feature*> > > pq_features;
 
 	features = cvCreateSeq( 0, sizeof(CvSeq), sizeof(struct feature), storage );
 	for( o = 0; o < octvs; o++ )
@@ -390,21 +395,36 @@ CvSeq* scale_space_extrema( IplImage*** dog_pyr, int octvs, int intvls,
 					if( ABS( pixval32f( dog_pyr[o][i], r, c ) ) > prelim_contr_thr )
 						if( is_extremum( dog_pyr, o, i, r, c ) )
 						{
-							feat = interp_extremum(dog_pyr, o, i, r, c, intvls, contr_thr);
+							feat = interp_extremum(dog_pyr, o, i, r, c, intvls, contr_thr, &calc_contr);
 							if( feat )
 							{
 								ddata = feat_detection_data( feat );
 								if( ! is_too_edge_like( dog_pyr[ddata->octv][ddata->intvl],
 									ddata->r, ddata->c, curv_thr ) )
 								{
-									cvSeqPush( features, feat );
+									pq_features.push(pair<double, feature*>(calc_contr, feat));
+									//cvSeqPush( features, feat );
 								}
 								else
 									free( ddata );
-								free( feat );
+								//free( feat );
 							}
 						}
 
+	for (i=0;  i<n_max && !pq_features.empty(); ++i) {
+		pair<double, feature*>* p = &pq_features.top();
+		cvSeqPush( features, p->second );
+		free (p->second);
+		//printf("%d=%lf, ", i, p->first);
+		pq_features.pop();
+	}
+	while (!pq_features.empty()) {
+		pair<double, feature*>* p = &pq_features.top();
+		ddata = feat_detection_data( p->second );
+		free(ddata);
+		free(p->second);
+		pq_features.pop();
+	}
 	return features;
 }
 
@@ -472,12 +492,13 @@ Based on Section 4 of Lowe's paper.
 	returned, its scale, orientation, and descriptor are yet to be determined.
 */
 struct feature* interp_extremum( IplImage*** dog_pyr, int octv, int intvl,
-								int r, int c, int intvls, double contr_thr )
+								int r, int c, int intvls, double contr_thr, double* calc_contr )
 {
 	struct feature* feat;
 	struct detection_data* ddata;
 	double xi, xr, xc, contr;
 	int i = 0;
+	*calc_contr = 0;
 
 	while( i < SIFT_MAX_INTERP_STEPS )
 	{
@@ -509,6 +530,8 @@ struct feature* interp_extremum( IplImage*** dog_pyr, int octv, int intvl,
 	contr = interp_contr( dog_pyr, octv, intvl, r, c, xi, xr, xc );
 	if( ABS( contr ) < contr_thr / intvls )
 		return NULL;
+
+	*calc_contr = ABS( contr );
 
 	feat = new_feature();
 	ddata = feat_detection_data( feat );
@@ -804,13 +827,15 @@ there is more than one dominant orientation at a given feature location.
 @param features an array of image features
 @param gauss_pyr Gaussian scale space pyramid
 */
-void calc_feature_oris( CvSeq* features, IplImage*** gauss_pyr )
+void calc_feature_oris( CvSeq* features, IplImage*** gauss_pyr, int n_max )
 {
 	struct feature* feat;
 	struct detection_data* ddata;
 	double* hist;
 	double omax;
+	int omi;
 	int i, j, n = features->total;
+	vector<feature*> features_reserved;
 
 	for( i = 0; i < n; i++ )
 	{
@@ -823,12 +848,25 @@ void calc_feature_oris( CvSeq* features, IplImage*** gauss_pyr )
 						SIFT_ORI_SIG_FCTR * ddata->scl_octv );
 		for( j = 0; j < SIFT_ORI_SMOOTH_PASSES; j++ )
 			smooth_ori_hist( hist, SIFT_ORI_HIST_BINS );
-		omax = dominant_ori( hist, SIFT_ORI_HIST_BINS );
-		add_good_ori_features( features, hist, SIFT_ORI_HIST_BINS,
-								omax * SIFT_ORI_PEAK_RATIO, feat );
+		omax = dominant_ori( hist, SIFT_ORI_HIST_BINS, &omi );
+		add_good_ori_features( features, &features_reserved,  hist, SIFT_ORI_HIST_BINS,
+								omax * SIFT_ORI_PEAK_RATIO, feat, omi );
 		free( ddata );
 		free( feat );
 		free( hist );
+	}
+	
+	// add more keypoints if needed.
+	i = 0;
+	if (features->total < n_max) {
+		int more = n_max - features->total;
+		for (; i<more && i<features_reserved.size(); ++i) {
+			cvSeqPush( features, features_reserved[i] );
+			free (features_reserved[i]);
+		}
+	}
+	for (; i<features_reserved.size(); ++i) {
+		free (features_reserved[i]);
 	}
 }
 
@@ -932,7 +970,7 @@ Finds the magnitude of the dominant orientation in a histogram
 
 @return Returns the value of the largest bin in hist
 */
-double dominant_ori( double* hist, int n )
+double dominant_ori( double* hist, int n, int* omi )
 {
 	double omax;
 	int maxbin, i;
@@ -945,6 +983,8 @@ double dominant_ori( double* hist, int n )
 			omax = hist[i];
 			maxbin = i;
 		}
+
+	*omi = maxbin;
 	return omax;
 }
 
@@ -967,8 +1007,8 @@ a specified threshold.
 @param mag_thr new features are added for entries in hist greater than this
 @param feat new features are clones of this with different orientations
 */
-void add_good_ori_features( CvSeq* features, double* hist, int n,
-						   double mag_thr, struct feature* feat )
+void add_good_ori_features( CvSeq* features, vector<feature*>* features_reserved, double* hist, int n,
+						   double mag_thr, struct feature* feat, int omi)
 {
 	struct feature* new_feat;
 	double bin, PI2 = CV_PI * 2.0;
@@ -985,8 +1025,12 @@ void add_good_ori_features( CvSeq* features, double* hist, int n,
 			bin = ( bin < 0 )? n + bin : ( bin >= n )? bin - n : bin;
 			new_feat = clone_feature( feat );
 			new_feat->ori = ( ( PI2 * bin ) / n ) - CV_PI;
-			cvSeqPush( features, new_feat );
-			free( new_feat );
+			if (i == omi) {
+				cvSeqPush( features, new_feat );
+				free( new_feat );
+			} else {
+				features_reserved->push_back(new_feat);
+			}
 		}
 	}
 }

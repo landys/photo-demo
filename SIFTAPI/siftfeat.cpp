@@ -15,6 +15,7 @@ that accompanied this distribution.
 Version: 1.1.1-20070330
 */
 
+#include "siftfeat.h"
 #include "sift.h"
 #include "imgfeatures.h"
 #include "utils.h"
@@ -45,12 +46,12 @@ int img_dbl = SIFT_IMG_DBL;
 int descr_width = SIFT_DESCR_WIDTH;
 int descr_hist_bins = SIFT_DESCR_HIST_BINS;
 //char* imagenamefile  = "e:\\imagename.txt";
-char* logFileName = "data\\sift.log";
+char* logFileName = "E:\\testpics\\test\\sift_larger_pruned2.log";
 
 /**
  * This interface provides SIFT algorithm implementation. Returns 1 if success, 0 if fail.
 **/
-extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_file_name, int img_dbl, double contr_thr)
+extern "C" DLL_EXPORT int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr, int n_max)
 {
 	IplImage* img;
 	struct feature* features;
@@ -94,7 +95,7 @@ extern "C" __declspec(dllexport) int showSift(char* imagenamefile, char* out_fil
 
 		long bt = clock();
 		n = _sift_features( img, &features, intvls, sigma, contr_thr, curv_thr,
-			img_dbl, descr_width, descr_hist_bins, logFile );
+			img_dbl, descr_width, descr_hist_bins, logFile, n_max);
 		fprintf(logFile, "%-7ld ", clock() - bt);
 		fprintf(logFile, "%d\n", n);
 

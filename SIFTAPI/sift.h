@@ -141,6 +141,6 @@ pixel values in the range [0, 1]
 */
 extern int _sift_features( IplImage* img, struct feature** feat, int intvls,
 						  double sigma, double contr_thr, int curv_thr,
-						  int img_dbl, int descr_width, int descr_hist_bins, FILE* fpLog );
+						  int img_dbl, int descr_width, int descr_hist_bins, FILE* fpLog, int n_max );
 
 #endif
