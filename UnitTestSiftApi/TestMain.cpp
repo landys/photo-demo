@@ -30,23 +30,23 @@ void printKeypoints(char* dataFileStr, char* dataFileTextStr)
 	FILE* fp = fopen(dataFileStr, "rb");
 	FILE* out = fopen(dataFileTextStr, "wt");
 
-	Long64T id;
+	long long id;
 	int index;
 	double buf[4];
 	double data[128];
 	int pointLimit = 0;
 	int nFiles = 0;
-	Long64T allPointsNum = 0;
+	long long allPointsNum = 0;
 
-	fread(&allPointsNum, sizeof(Long64T), 1, fp);
+	fread(&allPointsNum, sizeof(long long), 1, fp);
 	printf("allPointsNum=%lld\n", allPointsNum);
 	fread(&pointLimit, sizeof(int), 1, fp);
 	printf("pointLimit=%d\n", pointLimit);
 	nFiles = allPointsNum / pointLimit + 1;
 	printf("nFiles=%d\n", nFiles);
-	while (fread(&id, sizeof(Long64T), 1, fp) > 0)
+	while (fread(&id, sizeof(long long), 1, fp) > 0)
 	{
-		fprintf(out, LONG64T_TEXT, id);
+		fprintf(out, "%lld", id);
 		fread(&id, sizeof(int), 1, fp);
 		fprintf(out, "_%d", id);
 		fread(&buf, sizeof(double), 4, fp);
@@ -140,9 +140,9 @@ void outputIndexFile(string indexFileName, string outputTextFileName) {
 	FILE *output = fopen(outputTextFileName.c_str(), "w+t");
 	
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, fp);
-	Long64T allPointsNum;
+	long long allPointsNum;
 	int pointNumLimit;
-	fread(&allPointsNum, sizeof(Long64T), 1, fp);
+	fread(&allPointsNum, sizeof(long long), 1, fp);
 	fread(&pointNumLimit, sizeof(int), 1, fp);
 	
 	fprintf(output, "%s, %I64d, %d\n", sBuffer, allPointsNum, pointNumLimit);
@@ -161,12 +161,13 @@ void outputIndexFile(string indexFileName, string outputTextFileName) {
 			fread(&value, sizeof(value), 1, fp);
 
 			fprintf(output, " (%6d, %6u)", index, value);
+			++cnt;
 		}
 
 		fseek(fp, ONE_ELEMENT * (MAX_IN_ONE_BUCKET - num), SEEK_CUR);
 		fprintf(output, "\n");
 	}
-
+	printf("%d\n", cnt);
 	fclose(fp);
 	fclose(output);
 }
@@ -175,9 +176,9 @@ void printIndexInfo(string indexName)
 {
 	FILE *fp = fopen(indexName.c_str(), "rb");
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, fp);
-	Long64T allPointsNum;
+	long long allPointsNum;
 	int pointNumLimit;
-	fread(&allPointsNum, sizeof(Long64T), 1, fp);
+	fread(&allPointsNum, sizeof(long long), 1, fp);
 	fread(&pointNumLimit, sizeof(int), 1, fp);
 	printf("index: %s, %I64d, %d\n", sBuffer, allPointsNum, pointNumLimit);
 	fclose(fp);
@@ -187,9 +188,9 @@ void printOutput(string outName, string outtextName)
 {
 	FILE* out = fopen(outName.c_str(), "rb");
 	FILE* outText = fopen(outtextName.c_str(), "wt");
-	Long64T id;
+	long long id;
 	int index;
-	while (fread(&id, sizeof(Long64T), 1, out) == 1)
+	while (fread(&id, sizeof(long long), 1, out) == 1)
 	{
 		fread(&index, sizeof(int), 1, out);
 		if (id == -1 && index == -1)
@@ -207,7 +208,6 @@ void printOutput(string outName, string outtextName)
 
 void testE2LSH()
 {
-	/*
 	int n1 = siftImage("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\1.jpg", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", 1, 0.04, 55);
 	int n2 = showSift("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_img_files", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints", 1, 0.04);
 	int n3 = siftImage("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\tmpHeadImg\\3.jpg", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", 1, 0.04, 44);
@@ -231,15 +231,15 @@ void testE2LSH()
 	//printf("end add to index\n");
 	outputIndexFile("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex_added.txt");
 	printf("Begin to query\n");
-	
+
 	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2");
-	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2.txt");
+//	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\test2.txt");
 	
 	query("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out");
-	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out.txt");
-*/
-	printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\add_keypoints",
-		"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\add_keypoints.txt");
+//	printOutput("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\out.txt");
+
+/*	printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\add_keypoints",
+		"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\add_keypoints.txt");*/
 
 }
 
@@ -254,34 +254,34 @@ void addDataSetToIndexDataSet(const string& dataFileName, const string& indexFil
 
 	char buf[12] = {'\0'};
 
-	Long64T newAllPointsNum = 0;
-	Long64T dataAllPointsNum = 0;
+	long long newAllPointsNum = 0;
+	long long dataAllPointsNum = 0;
 	int indexLimit = 0;
 	int dataLimit = 0;
 
 	rewind(indexFile);
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, indexFile);
-	fread(&newAllPointsNum, sizeof(Long64T), 1, indexFile);
+	fread(&newAllPointsNum, sizeof(long long), 1, indexFile);
 	fread(&indexLimit, sizeof(int), 1, indexFile);
 	int indexNFiles = newAllPointsNum / indexLimit + 1;
 	int curPos = newAllPointsNum % indexLimit;
 
 	rewind(dataFile);
-	fread(&dataAllPointsNum, sizeof(Long64T), 1, dataFile);
+	fread(&dataAllPointsNum, sizeof(long long), 1, dataFile);
 	fread(&dataLimit, sizeof(int), 1, dataFile);
 	int dataNFiles = dataAllPointsNum / dataLimit + 1;
 
 	newAllPointsNum += dataAllPointsNum;
 	// write the new number of all points into the index file.
 	fseek(indexFile, MAX_FILE_NAME_LENGTH * sizeof(char), SEEK_SET);
-	fwrite(&newAllPointsNum, sizeof(Long64T), 1, indexFile);
+	fwrite(&newAllPointsNum, sizeof(long long), 1, indexFile);
 	fclose(indexFile);
 
 	// get dataset file name of the index
 	string indexDataFileName = getWholeFilePath(indexFileName, string(sBuffer));
 	FILE* indexDataFile = fopen(indexDataFileName.c_str(), "r+b");
 	FAILIF(NULL == indexDataFile);
-	fwrite(&newAllPointsNum, sizeof(Long64T), 1, indexDataFile);
+	fwrite(&newAllPointsNum, sizeof(long long), 1, indexDataFile);
 	fseek(indexDataFile, 0, SEEK_END);
 
 	if (indexNFiles > 1)
@@ -325,9 +325,9 @@ void testAddDataSetToIndexDataSet()
 {
 	FILE *fp = fopen("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "rb");
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, fp);
-	Long64T allPointsNum;
+	long long allPointsNum;
 	int pointNumLimit;
-	fread(&allPointsNum, sizeof(Long64T), 1, fp);
+	fread(&allPointsNum, sizeof(long long), 1, fp);
 	fread(&pointNumLimit, sizeof(int), 1, fp);
 	printf("index: %s, %I64d, %d\n", sBuffer, allPointsNum, pointNumLimit);
 	fclose(fp);
@@ -337,7 +337,7 @@ void testAddDataSetToIndexDataSet()
 	addDataSetToIndexDataSet("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\add_keypoints", "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex");
 	fp = fopen("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\myindex", "rb");
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, fp);
-	fread(&allPointsNum, sizeof(Long64T), 1, fp);
+	fread(&allPointsNum, sizeof(long long), 1, fp);
 	fread(&pointNumLimit, sizeof(int), 1, fp);
 	printf("index: %s, %I64d, %d\n", sBuffer, allPointsNum, pointNumLimit);
 	fclose(fp);
@@ -345,15 +345,49 @@ void testAddDataSetToIndexDataSet()
 		"E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints_text2.txt");
 }
 
+#define PRINT1(x) {printf(x##" B%d\n", 10);}
+#define PRINT2(x) {printf(x" B%d\n", 10);}
+#define PRINT3(x) {printf("%s B%d\n", x, 10);}
+
+void dsend(int count);
+
+void dsend(int count) {
+	int n;
+	if (!count) return;
+	n = (count + 7) / 8;
+	switch (count % 8) {
+	  case 0: do { puts("case 0");
+	  case 7:      puts("case 7");
+	  case 6:      puts("case 6");
+	  case 5:      puts("case 5");
+	  case 4:      puts("case 4");
+	  case 3:      puts("case 3");
+	  case 2:      puts("case 2");
+	  case 1:      puts("case 1");
+			  } while (--n > 0);
+	}
+}
+
+
 int main()
 {
 	//testSiftApi();
 	//testGetFileName();
 	//testGetWholeFilePath();
-	testE2LSH();
+	
+	//testE2LSH();
 	//printKeypoints("E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints",
 	//	"E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\index_keypoints_text.txt");
 	//testAddDataSetToIndexDataSet();
 
+	//puts("duff's device.");
+	//dsend(10);
+
+	outputIndexFile("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\index3", "E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\index3info.txt");
+	//printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\keypointIndex3",
+	//	"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\keypointIndex3_text.txt");
+
+	//printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\keypointMatch",
+	//	"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\keypointMatch_text.txt");
 	return 0;
 }

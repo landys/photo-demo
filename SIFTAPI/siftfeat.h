@@ -1,11 +1,9 @@
 #ifdef WIN32
-typedef __int64 Long64T;
-#define LONG64T_TEXT "%I64d"
-extern "C" __declspec(dllexport) int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr);
-extern "C" __declspec(dllexport) int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, Long64T id=0);
+#define DLL_EXPORT __declspec(dllexport)
 #else
-typedef long long Long64T;
-#define LONG64T_TEXT "%lld"
-extern "C" int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr);
-extern "C" int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, Long64T id=0);
+#define DLL_EXPORT
 #endif
+
+extern "C" DLL_EXPORT int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr, int n_max=0);
+extern "C" DLL_EXPORT int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, long long id=0, int n_max=0);
+

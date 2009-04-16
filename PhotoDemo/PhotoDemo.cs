@@ -26,13 +26,18 @@ namespace PhotoDemo
         private static string outputImgFile = dataDir + "\\outputImg.txt";
         private static string configFile = dataDir + "\\config.txt";
         private static string mapFile = indexDir + "\\fileNameMap.txt";
+        private static string logFile = dataDir + "\\log.txt";
         private static Boolean imgFlag = false;
+
+        private static string matchImage = "";
 
         private static int indexCount = 0;
         private static int MIN_MATCH = 10;
         private static Dictionary<long, string> fileNameMap;
 
         private int maxImageId;
+
+        private static StreamWriter logger;
         
         /// <summary>
         /// Constructor. Initialize data, components and result directories.
@@ -134,6 +139,16 @@ namespace PhotoDemo
             {
                 cmbMatch.SelectedIndex = 0;
             }
+
+            if (File.Exists(logFile))
+            {
+                logger = File.AppendText(logFile);
+            }
+            else
+            {
+                logger = File.CreateText(logFile);
+            }
+            logger.AutoFlush = true;
         }
 
 
@@ -235,9 +250,10 @@ namespace PhotoDemo
             dlgOpenImage.Multiselect = false;
             if (dlgOpenImage.ShowDialog() == DialogResult.OK)
             {
-                StreamWriter sw = File.CreateText(imgsForMatchFile);
+                matchImage = dlgOpenImage.FileName;
+                /*StreamWriter sw = File.CreateText(imgsForMatchFile);
                 sw.WriteLine(dlgOpenImage.FileName);
-                sw.Close();
+                sw.Close();*/
                 imgForMatch.Image = Image.FromFile(dlgOpenImage.FileName);
                 imgFlag = true;
 
@@ -272,13 +288,15 @@ namespace PhotoDemo
                 imgDbl = 1;
             }
             string keypointFile = keypointFileForIndex + ++indexCount;
-            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFile.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
+            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFile.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text), Int32.Parse(txtNMax.Text)) == -1)
             {
                 MessageBox.Show("Create SIFT error.");
                 btnCreateIndex.Enabled = true;
                 btnAddToIndex.Enabled = true;
                 return;
             }
+            logger.WriteLine("SIFT finished, goto setupIndex.");
+
             string file = indexFilePre + indexCount;
             try
             {
@@ -368,7 +386,7 @@ namespace PhotoDemo
 
         private void btnMatch_Click(object sender, EventArgs e)
         {
-            if (!File.Exists(imgsForMatchFile))
+            if (matchImage.Equals(""))//(!File.Exists(imgsForMatchFile))
             {
                 btnCreateIndex.Enabled = false;
                 btnAddToIndex.Enabled = false;
@@ -401,7 +419,10 @@ namespace PhotoDemo
             {
                 imgDbl = 1;
             }
-            if (ServiceApi.showSift(imgsForMatchFile.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
+            //MessageBox.Show(matchImage);
+            int n = ServiceApi.siftImage(matchImage.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text), 1, Int32.Parse(txtNMax.Text));
+            //if (ServiceApi.showSift(imgsForMatchFile.ToCharArray(), keypointFileForMatch.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
+            if (n < 0)
             {
                 MessageBox.Show("Create SIFT error.");
                 btnMatch.Enabled = true;
@@ -411,7 +432,7 @@ namespace PhotoDemo
             sw.Stop();
             lblGeneratingKeypointsTime.Text = sw.ElapsedMilliseconds + "ms";
 
-            lblKeyPointCount.Text = getLineCount(keypointFileForMatch).ToString();
+            lblKeyPointCount.Text = n.ToString();
             
             Refresh();
 
@@ -505,14 +526,17 @@ namespace PhotoDemo
             {
                 imgDbl = 1;
             }
-            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileTemp.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text)) == -1)
+
+            if (ServiceApi.showSift(imgsForIndexFile.ToCharArray(), keypointFileTemp.ToCharArray(), imgDbl, Double.Parse(txtContrThr.Text), Int32.Parse(txtNMax.Text)) == -1)
             {
                 MessageBox.Show("Create SIFT error.");
                 btnCreateIndex.Enabled = true;
                 btnAddToIndex.Enabled = true;
                 return;
             }
-            
+
+            logger.WriteLine("SIFT finished, goto addToIndex.");
+
             try
             {
                 ServiceApi.addToIndex(keypointFileTemp.ToCharArray(), file.ToCharArray());

@@ -10,13 +10,19 @@ namespace PhotoDemo
         [DllImport("E2LSH.dll", EntryPoint = "setUpIndex", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern void setUpIndex(char[] dataFile, char[] index, double R, double W, int K, int L);
 
+        [DllImport("E2LSH.dll", EntryPoint = "addToIndex", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern void addToIndex(char[] dataFileStr, char[] indexNameStr);
+
         [DllImport("E2LSH.dll", EntryPoint = "query", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern void query(char[] queryFile, char[] index, char[] output);
 
         [DllImport("SiftAPI.dll", EntryPoint = "showSift", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern int showSift(char[] imagenamefile, char[] out_file_name, int img_dbl, double contr_thr);
 
-//        [DllImport("SiftAPI.dll", EntryPoint = "initialeigs", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-//        public static extern void initialeigs(char[] eigsfile);
+        [DllImport("SiftAPI.dll", EntryPoint = "siftImage", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int siftImage(char[] imagename, char[] out_file_name, int img_dbl, double contr_thr, long id);
+
+        //        [DllImport("SiftAPI.dll", EntryPoint = "initialeigs", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        //        public static extern void initialeigs(char[] eigsfile);
     }
 }

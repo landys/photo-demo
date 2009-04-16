@@ -74,19 +74,19 @@ const int IGNORE_DIMENSION = 4;
 const int MAX_IN_ONE_BUCKET = 200;
 int MAX_POINTS_IN_ONE_PASS = 10000;
 const int MAX_FILE_NAME_LENGTH = 256;
-const int DATASET_FILE_INFO_SIZE = MAX_FILE_NAME_LENGTH * sizeof(char) + sizeof(Long64T) + sizeof(int);
+const int DATASET_FILE_INFO_SIZE = MAX_FILE_NAME_LENGTH * sizeof(char) + sizeof(long long) + sizeof(int);
 const int MIN_BUCKET_NUM = 50000;
 const int MIN_MATCH_GAP = 5;
 const int ONE_ELEMENT = sizeof(int) + sizeof(Uns32T);
 const int ONE_ROW = (sizeof(int) + sizeof(Uns32T)) * MAX_IN_ONE_BUCKET + sizeof(int);
-const int DATASET_ONE_ROW_SIZE = sizeof(Long64T) + sizeof(int) + sizeof(double) * (pointsDimension + IGNORE_DIMENSION);
+const int DATASET_ONE_ROW_SIZE = sizeof(long long) + sizeof(int) + sizeof(double) * (pointsDimension + IGNORE_DIMENSION);
 // default value, can modified by a parameter.
 int bucketNum = MIN_BUCKET_NUM;
 int hashTableSize = bucketNum;
 int pointNumLimit = 0;	// point number limit of a data file
 typedef struct _pointId
 {
-	Long64T id;
+	long long id;
 	int index;
 } PointId;
 PointId pointId;
@@ -95,9 +95,9 @@ PointId pointId;
 
 #define PRINT_MEMORY(pre) {printf("%s used memory = %d\n", pre, totalAllocatedMemory);}
 
-void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters, bool isAdd=false, int minBucketNum=MIN_BUCKET_NUM, Long64T existNPoints=0);
+void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters, bool isAdd=false, int minBucketNum=MIN_BUCKET_NUM, long long existNPoints=0);
 void addOnePointToBucket(FILE *fp, int bucketIndex, int pointIndex,Uns32T hValue);
-void initAllDiskBucket(FILE* fp, string dataFileName, Long64T allPointsNum, int pointNumLimit);
+void initAllDiskBucket(FILE* fp, string dataFileName, long long allPointsNum, int pointNumLimit);
 void queryInner(string queryFileName, string indexFileName, RNNParametersT optParameters, string outputFile);
 PRNearNeighborStructT getHashedStructure(RNNParametersT algParameters, bool isFirst, bool useFileToInit, char* index);
 PRNearNeighborStructT getHashedStructure(RNNParametersT algParameters, bool isFirst, bool useFileToInit, FILE* index);
@@ -132,11 +132,8 @@ void saveParameter(string indexName, double inputR, double inputW, int inputK, i
 	fwrite(&theBucketNum, sizeof(theBucketNum), 1, indexFile);
 	fclose(indexFile);
 }
-#ifdef WIN32
-extern "C" __declspec(dllexport) void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR/* = parameterR*/, double inputW/* = PARAMETER_W_DEFAULT*/, int inputK/* = parameterK*/, int inputL/* = parameterL*/) {
-#else
-extern "C" void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR/* = parameterR*/, double inputW/* = PARAMETER_W_DEFAULT*/, int inputK/* = parameterK*/, int inputL/* = parameterL*/) {
-#endif // WIN32
+
+extern "C" DLL_EXPORT void setUpIndex(char* dataFileStr, char* indexNameStr, double inputR/* = parameterR*/, double inputW/* = PARAMETER_W_DEFAULT*/, int inputK/* = parameterK*/, int inputL/* = parameterL*/) {
 
     RNNParametersT optParameters;
 
@@ -186,11 +183,7 @@ void getParameter(string indexName, double& inputR, double& inputW, int& inputK,
 }
 
 // add dataset to the index.
-#ifdef WIN32
-extern "C" __declspec(dllexport) void addToIndex(char* dataFileStr, char* indexNameStr) {
-#else
-extern "C" void addToIndex(char* dataFileStr, char* indexNameStr) {
-#endif // WIN32
+extern "C" DLL_EXPORT void addToIndex(char* dataFileStr, char* indexNameStr) {
 
 	string dataFileName(dataFileStr);
 	string indexName(indexNameStr);
@@ -219,12 +212,12 @@ extern "C" void addToIndex(char* dataFileStr, char* indexNameStr) {
 	FILE* dataFile = fopen(dataFileName.c_str(), "rb");
 	FAILIF(dataFile == NULL);
 
-	Long64T indexAllPointsNum = 0;
+	long long indexAllPointsNum = 0;
 	fseek(indexFile, MAX_FILE_NAME_LENGTH * sizeof(char), SEEK_SET);
-	FAILIF(1 != fread(&indexAllPointsNum, sizeof(Long64T), 1, indexFile));
+	FAILIF(1 != fread(&indexAllPointsNum, sizeof(long long), 1, indexFile));
 	
-	Long64T dataAllPointsNum = 0;
-	FAILIF(1 != fread(&dataAllPointsNum, sizeof(Long64T), 1, dataFile));
+	long long dataAllPointsNum = 0;
+	FAILIF(1 != fread(&dataAllPointsNum, sizeof(long long), 1, dataFile));
 	fclose(dataFile);
 	fclose(indexFile);
 
@@ -232,7 +225,7 @@ extern "C" void addToIndex(char* dataFileStr, char* indexNameStr) {
 	addDataSetToIndexDataSet(dataFileName, indexName);
 	
 
-	Long64T newAllPointsNum = indexAllPointsNum + dataAllPointsNum;
+	long long newAllPointsNum = indexAllPointsNum + dataAllPointsNum;
 	// if 80% full, rehash.
 	if (newAllPointsNum * optParameters.parameterL > MAX_IN_ONE_BUCKET * theBucketNum * 0.8)
 	{
@@ -247,12 +240,7 @@ extern "C" void addToIndex(char* dataFileStr, char* indexNameStr) {
 }
 
 
-
-#ifdef WIN32
-extern "C" __declspec(dllexport) void query(char* queryFileStr, char* indexNameStr, char* outputFileStr) {
-#else
-extern "C" void query(char* queryFileStr, char* indexNameStr, char* outputFileStr) {
-#endif // WIN32
+extern "C" DLL_EXPORT void query(char* queryFileStr, char* indexNameStr, char* outputFileStr) {
 	printMemory("query end");
 	string queryFile(queryFileStr);
 	string indexName(indexNameStr);
@@ -285,9 +273,9 @@ void outputIndexFile(string indexFileName, string outputTextFileName) {
 	FILE *output = fopen(outputTextFileName.c_str(), "w+t");
 
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, fp);
-	Long64T allPointsNum;
+	long long allPointsNum;
 	int pointNumLimit;
-	fread(&allPointsNum, sizeof(Long64T), 1, fp);
+	fread(&allPointsNum, sizeof(long long), 1, fp);
 	fread(&pointNumLimit, sizeof(int), 1, fp);
 
 	fprintf(output, "%s, %I64d, %d\n", sBuffer, allPointsNum, pointNumLimit);
@@ -361,7 +349,7 @@ void convertTextDataFile2BinFile(string textDataFileName) {
 // parameter minBucketNum    used when setup a new index, as the minimal bucket number of the new index.
 // parameter existNPoints    the number of exist points number when isAdd is true.
 //
-void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters, bool isAdd/*=false*/, int minBucketNum/*=MIN_BUCKET_NUM*/, Long64T existNPoints/*=0*/)
+void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNParametersT optParameters, bool isAdd/*=false*/, int minBucketNum/*=MIN_BUCKET_NUM*/, long long existNPoints/*=0*/)
 {
     //convertTextDataFile2BinFile(dataSetFileName);
 	//bucketNum = 
@@ -371,8 +359,8 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 	FILE *datasetFile = fopen(dataSetFileName.c_str(), "rb");
 	FAILIF(datasetFile == NULL);
 	// the number of dataset files, for the dataset maybe divided into several files if the dataset is too large.
-	Long64T allPointsNum = 0;
-	fread(&allPointsNum, sizeof(Long64T), 1, datasetFile);
+	long long allPointsNum = 0;
+	fread(&allPointsNum, sizeof(long long), 1, datasetFile);
 	fread(&pointNumLimit, sizeof(int), 1, datasetFile);
 	int nFiles = allPointsNum / pointNumLimit + 1;
 
@@ -415,7 +403,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 
 	// skip the header of the dataset file
 	rewind(datasetFile);
-	fseek(datasetFile, sizeof(Long64T) + sizeof(int), SEEK_SET);
+	fseek(datasetFile, sizeof(long long) + sizeof(int), SEEK_SET);
 
 	int curFile = 1;
 	while (true) {
@@ -425,7 +413,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 		IntT pointsCurrent = 0;
 
 		for(IntT i = 0; i < MAX_POINTS_IN_ONE_PASS; i++){
-			if (fread(&(pointId.id), sizeof(Long64T), 1, datasetFile) != 1)
+			if (fread(&(pointId.id), sizeof(long long), 1, datasetFile) != 1)
 			{
 				if (++curFile > nFiles)
 				{
@@ -436,7 +424,7 @@ void setUpIndexFromDataSet(string dataSetFileName, string indexFileName, RNNPara
 				string datasetPiece = dataSetFileName;
 				datasetFile = fopen(datasetPiece.append(buf).c_str(), "rb");
 				FAILIF(datasetFile == NULL);
-				if (fread(&(pointId.id), sizeof(Long64T), 1, datasetFile) != 1)
+				if (fread(&(pointId.id), sizeof(long long), 1, datasetFile) != 1)
 				{
 					break;
 				}
@@ -681,34 +669,34 @@ void addDataSetToIndexDataSet(const string& dataFileName, const string& indexFil
 
 	char buf[12] = {'\0'};
 
-	Long64T newAllPointsNum = 0;
-	Long64T dataAllPointsNum = 0;
+	long long newAllPointsNum = 0;
+	long long dataAllPointsNum = 0;
 	int indexLimit = 0;
 	int dataLimit = 0;
 
 	rewind(indexFile);
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, indexFile);
-	fread(&newAllPointsNum, sizeof(Long64T), 1, indexFile);
+	fread(&newAllPointsNum, sizeof(long long), 1, indexFile);
 	fread(&indexLimit, sizeof(int), 1, indexFile);
 	int indexNFiles = newAllPointsNum / indexLimit + 1;
 	int curPos = newAllPointsNum % indexLimit;
 
 	rewind(dataFile);
-	fread(&dataAllPointsNum, sizeof(Long64T), 1, dataFile);
+	fread(&dataAllPointsNum, sizeof(long long), 1, dataFile);
 	fread(&dataLimit, sizeof(int), 1, dataFile);
 	int dataNFiles = dataAllPointsNum / dataLimit + 1;
 
 	newAllPointsNum += dataAllPointsNum;
 	// write the new number of all points into the index file.
 	fseek(indexFile, MAX_FILE_NAME_LENGTH * sizeof(char), SEEK_SET);
-	fwrite(&newAllPointsNum, sizeof(Long64T), 1, indexFile);
+	fwrite(&newAllPointsNum, sizeof(long long), 1, indexFile);
 	fclose(indexFile);
 
 	// get dataset file name of the index
 	string indexDataFileName = getWholeFilePath(indexFileName, string(sBuffer));
 	FILE* indexDataFile = fopen(indexDataFileName.c_str(), "r+b");
 	FAILIF(NULL == indexDataFile);
-	fwrite(&newAllPointsNum, sizeof(Long64T), 1, indexDataFile);
+	fwrite(&newAllPointsNum, sizeof(long long), 1, indexDataFile);
 	fseek(indexDataFile, 0, SEEK_END);
 
 	if (indexNFiles > 1)
@@ -1198,8 +1186,8 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 	FILE* indexFile = fopen(indexFileName.c_str(), "rb");
 	FAILIF(NULL == indexFile);
 	fread(sBuffer, sizeof(char), MAX_FILE_NAME_LENGTH, indexFile);
-	Long64T allPointsNum = 0;
-	fread(&allPointsNum, sizeof(Long64T), 1, indexFile);
+	long long allPointsNum = 0;
+	fread(&allPointsNum, sizeof(long long), 1, indexFile);
 	fread(&pointNumLimit, sizeof(int), 1, indexFile);
 	int nFiles = allPointsNum / pointNumLimit + 1;
 	string datasetFileName = getWholeFilePath(indexFileName, string(sBuffer));
@@ -1247,17 +1235,17 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 	}
 	//printHashfunction(nnStruct, "E:\\projects\\photodemo\\codes\\PicMatcher\\data\\train\\queryNnStruct");
 	printMemory("query5:");
-	map<Long64T, int> picCount;
+	map<long long, int> picCount;
 	map<int, int> nnPoints;
 
-	Long64T prevFile = -1;
-	Long64T currentFile;
+	long long prevFile = -1;
+	long long currentFile;
 
 	map<pair<int, unsigned int>, int> bucketMatch;
 
 	double temp[IGNORE_DIMENSION] = {0.0};
 	char buf[12] = {'\0'};
-	fseek(queryFile, sizeof(Long64T) + sizeof(int), SEEK_SET);
+	fseek(queryFile, sizeof(long long) + sizeof(int), SEEK_SET);
 	PointId endMark;
 	endMark.id = -1;
 	endMark.index = -1;
@@ -1266,7 +1254,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 	while (true) {
 		bool isEOF = false;
 
-		if (fread(&(pointId.id), sizeof(Long64T), 1, queryFile) != 1) {
+		if (fread(&(pointId.id), sizeof(long long), 1, queryFile) != 1) {
 			isEOF = true;
 		}
 		currentFile = pointId.id;
@@ -1278,7 +1266,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 			for (int j = sBufferSize - 1; j >= 0; j--) {
 				ungetc(sBuffer[j], queryFile);
 			}*/
-			fseek(queryFile, -(sizeof(Long64T) + sizeof(int)), SEEK_CUR);
+			fseek(queryFile, -(sizeof(long long) + sizeof(int)), SEEK_CUR);
 
 			//std::sort(bucketMatch.begin(), bucketMatch.end());
 
@@ -1323,7 +1311,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 				curDataFile = 1;
 			}
 
-			fseek(datasetFile, sizeof(Long64T) + sizeof(int), SEEK_SET);
+			fseek(datasetFile, sizeof(long long) + sizeof(int), SEEK_SET);
 
 			prevIndex = -1;
 
@@ -1347,7 +1335,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 				}
 
 				fseek(datasetFile, DATASET_ONE_ROW_SIZE * curPos, SEEK_CUR);
-				fread(&(pointId.id), sizeof(Long64T), 1, datasetFile);
+				fread(&(pointId.id), sizeof(long long), 1, datasetFile);
 				fread(&(pointId.index), sizeof(int), 1, datasetFile);
 				
 				//fread(sBuffer,sizeof(char), MAX_FILE_NAME_LENGTH, datasetFile);
@@ -1355,12 +1343,12 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 				//picCount[pointsId.substr(0, pointsId.find_last_of('_'))] += it->second;
 				picCount[pointId.id] += it->second;
 
-				fseek(datasetFile, DATASET_ONE_ROW_SIZE - (sizeof(Long64T) + sizeof(int)), SEEK_CUR);
+				fseek(datasetFile, DATASET_ONE_ROW_SIZE - (sizeof(long long) + sizeof(int)), SEEK_CUR);
 				prevIndex = it->first;
 			}
 
-			vector<pair<int, Long64T> > matchedPicture;
-			for (map<Long64T, int>::iterator pos = picCount.begin(); pos != picCount.end(); pos++) {
+			vector<pair<int, long long> > matchedPicture;
+			for (map<long long, int>::iterator pos = picCount.begin(); pos != picCount.end(); pos++) {
 				if (pos->second >= MIN_MATCH_GAP) {
 					matchedPicture.push_back(make_pair(pos->second, pos->first));
 				}
@@ -1373,7 +1361,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 			//printf("*************************************************************\n");
 			for (int i = (int) matchedPicture.size() - 1; i >= 0; i--) {
 				//std::cout << matchedPicture[i].second << " " <<  matchedPicture[i].first << std::endl;
-				FAILIF(1 != fwrite(&(matchedPicture[i].second), sizeof(Long64T), 1, outputFile));
+				FAILIF(1 != fwrite(&(matchedPicture[i].second), sizeof(long long), 1, outputFile));
 				FAILIF(1 != fwrite(&(matchedPicture[i].first), sizeof(int), 1, outputFile));
 /*
 #ifdef WIN32
@@ -1388,7 +1376,7 @@ void queryInner(string queryFileName, string indexFileName, RNNParametersT optPa
 			nnPoints.clear();
 			picCount.clear();
 
-			FAILIF(1 != fwrite(&(endMark.id), sizeof(Long64T), 1, outputFile));
+			FAILIF(1 != fwrite(&(endMark.id), sizeof(long long), 1, outputFile));
 			FAILIF(1 != fwrite(&(endMark.index), sizeof(int), 1, outputFile));
 			//fprintf(outputFile, "\n");
 			//printf("\n");
@@ -1626,14 +1614,14 @@ void addOnePointToBucket(FILE *fp, int bucketIndex, int pointIndex, Uns32T hValu
 }
 
 /// 初始化索引文件，索引文件首先会包含长度为MAX_FILE_NAME_LENGTH的数据文件名，然后是所有bucket.
-void initAllDiskBucket(FILE* fp, string dataSetFileName, Long64T allPointsNum, int pointNumLimit)
+void initAllDiskBucket(FILE* fp, string dataSetFileName, long long allPointsNum, int pointNumLimit)
 {
 	FAILIF(fp == NULL);
 
 	rewind(fp);
 
 	fwrite(getFileName(dataSetFileName).c_str(), sizeof(char), MAX_FILE_NAME_LENGTH, fp);
-	fwrite(&allPointsNum, sizeof(Long64T), 1, fp);
+	fwrite(&allPointsNum, sizeof(long long), 1, fp);
 	fwrite(&pointNumLimit, sizeof(int), 1, fp);
 
 	for (int i = 0; i < bucketNum; i++) {

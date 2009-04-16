@@ -68,6 +68,8 @@
             this.panMatchImages = new System.Windows.Forms.FlowLayoutPanel();
             this.dlgOpenFolder = new System.Windows.Forms.FolderBrowserDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
+            this.txtNMax = new System.Windows.Forms.TextBox();
+            this.label12 = new System.Windows.Forms.Label();
             this.grpIndex.SuspendLayout();
             this.parameters.SuspendLayout();
             this.grpGenerate.SuspendLayout();
@@ -105,8 +107,10 @@
             // 
             // parameters
             // 
+            this.parameters.Controls.Add(this.txtNMax);
             this.parameters.Controls.Add(this.txtContrThr);
             this.parameters.Controls.Add(this.txtImgDbl);
+            this.parameters.Controls.Add(this.label12);
             this.parameters.Controls.Add(this.label11);
             this.parameters.Controls.Add(this.label8);
             this.parameters.Controls.Add(this.txtBoxL);
@@ -126,7 +130,7 @@
             // 
             // txtContrThr
             // 
-            this.txtContrThr.Location = new System.Drawing.Point(235, 56);
+            this.txtContrThr.Location = new System.Drawing.Point(234, 44);
             this.txtContrThr.Name = "txtContrThr";
             this.txtContrThr.Size = new System.Drawing.Size(44, 21);
             this.txtContrThr.TabIndex = 11;
@@ -138,12 +142,12 @@
             this.txtImgDbl.Name = "txtImgDbl";
             this.txtImgDbl.Size = new System.Drawing.Size(44, 21);
             this.txtImgDbl.TabIndex = 10;
-            this.txtImgDbl.Text = "0";
+            this.txtImgDbl.Text = "1";
             // 
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(169, 57);
+            this.label11.Location = new System.Drawing.Point(169, 47);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(59, 12);
             this.label11.TabIndex = 9;
@@ -461,6 +465,23 @@
             this.dlgOpenImage.Multiselect = true;
             this.dlgOpenImage.RestoreDirectory = true;
             // 
+            // txtNMax
+            // 
+            this.txtNMax.Location = new System.Drawing.Point(218, 70);
+            this.txtNMax.Name = "txtNMax";
+            this.txtNMax.Size = new System.Drawing.Size(62, 21);
+            this.txtNMax.TabIndex = 11;
+            this.txtNMax.Text = "1000000";
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(169, 72);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(35, 12);
+            this.label12.TabIndex = 9;
+            this.label12.Text = "N_MAX";
+            // 
             // ImageDemo
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -526,6 +547,8 @@
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Button btnAddToIndex;
+        private System.Windows.Forms.TextBox txtNMax;
+        private System.Windows.Forms.Label label12;
     }
 }
 

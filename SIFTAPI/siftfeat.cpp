@@ -53,18 +53,18 @@ int descr_hist_bins = SIFT_DESCR_HIST_BINS;
 //char* imagenamefile  = "e:\\imagename.txt";
 char* logFileName = "sift.log";
 int curPointNum = 0;
-Long64T allPointsNum = 0; // the number of points of all images
+long long allPointsNum = 0; // the number of points of all images
 int nFileIndex = 0; // the index of files if the result saved in several files
 FILE* outfile = 0;	// the FILE of the result
 char outfileName[256] = {'\0'};	// the result file name
 
-// one point = Long64T+int+double(4)+double(128) = 1036 bytes.
+// one point = long long+int+double(4)+double(128) = 1036 bytes.
 // the file should be less than 2G, so a file should contain less than 2072860 points.
 // the file may contains some other information about the data, so the limit of points is set as 2000000.
 const int LIMIT_POINTS_PER_FILE = 2000000;
 
-int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr);
-void saveOneImageFeatures(struct feature* pfeatures, int n, Long64T id);
+int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr, int n_max);
+void saveOneImageFeatures(struct feature* pfeatures, int n, long long id);
 void saveAndCloseOutFileHeader();
 void initParameter(const char* out_file_name);
 
@@ -72,11 +72,7 @@ void initParameter(const char* out_file_name);
  * This interface provides SIFT algorithm implementation. Returns number of files to be sifted if success, -1 if fail.
  * The image names in showSift should be less then 255, or maybe stack overflow.
 **/
-#ifdef WIN32
-extern "C" __declspec(dllexport) int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr)
-#else
-extern "C" int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr)
-#endif
+extern "C" DLL_EXPORT int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr, int n_max/*=0*/)
 {
 	initParameter(out_file_name);
 
@@ -86,15 +82,15 @@ extern "C" int showSift(const char* imagenamefile, const char* out_file_name, in
 	FAILIF(imageset == NULL);
 	outfile = fopen(outfileName,"w+b");
 	FAILIF(outfile == NULL);
-	fseek(outfile, sizeof(Long64T)+sizeof(int), SEEK_SET); // for file header about the datasets
+	fseek(outfile, sizeof(long long)+sizeof(int), SEEK_SET); // for file header about the datasets
 	char linebuf[256] = {'\0'};
 	char* imagename = 0;
 	
-	Long64T id = 0;
+	long long id = 0;
 	struct feature* pfeatures = 0;
 
 	//long abt = clock();
-	while(fscanf(imageset, LONG64T_TEXT, &id) != EOF)
+	while(fscanf(imageset, "%lld", &id) != EOF)
 	{
 		fgets(linebuf, 255, imageset);
 		int i = 0;
@@ -108,7 +104,7 @@ extern "C" int showSift(const char* imagenamefile, const char* out_file_name, in
 		linebuf[i+1] = '\0';
 		for (imagename=linebuf; *imagename!='\0' && (*imagename==' ' || *imagename=='\t'); ++imagename); // loop stop here, eliminate the head spaces/tabs.
 
-		int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr);
+		int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr, n_max);
 		if (n == -1)
 		{
 			FREE(pfeatures);
@@ -133,21 +129,17 @@ extern "C" int showSift(const char* imagenamefile, const char* out_file_name, in
  * @parameter out_file_name the output keypoints file
  * 
  */
-#ifdef WIN32
-extern "C" __declspec(dllexport) int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, Long64T id/*=0*/)
-#else
-extern "C" int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, Long64T id/*=0*/)
-#endif
+extern "C" DLL_EXPORT int siftImage(const char* imagename, const char* out_file_name, int img_dbl, double contr_thr, long long id/*=0*/, int n_max/*=0*/)
 {
 	initParameter(out_file_name);
 
 	outfile = fopen(outfileName, "w+b");
 	FAILIF(outfile == NULL);
-	fseek(outfile, sizeof(Long64T)+sizeof(int), SEEK_SET); // for file header about the datasets
+	fseek(outfile, sizeof(long long)+sizeof(int), SEEK_SET); // for file header about the datasets
 
 	struct feature* pfeatures = 0;
 
-	int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr);
+	int n = doSiftImage(imagename, &pfeatures, img_dbl, contr_thr, n_max);
 	if (n > 0) {
 		saveOneImageFeatures(pfeatures, n, id);
 		allPointsNum += n;
@@ -163,7 +155,7 @@ extern "C" int siftImage(const char* imagename, const char* out_file_name, int i
 /**
  * Do real sift here, and save the featured into an opened file, which passed from the caller.
 **/
-int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr)
+int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr, int n_max)
 {
 	IplImage* img;
 	
@@ -177,7 +169,7 @@ int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl,
 	}
 
 	int n = _sift_features( img, ppfeatures, intvls, sigma, contr_thr, curv_thr,
-		img_dbl, descr_width, descr_hist_bins );
+		img_dbl, descr_width, descr_hist_bins, n_max );
 
 	cvReleaseImage(&img);
 
@@ -185,7 +177,7 @@ int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl,
 }
 
 // save the features of one point into the outfile, return the number of points actually saved.
-void saveOneImageFeatures(struct feature* pfeatures, int n, Long64T id)
+void saveOneImageFeatures(struct feature* pfeatures, int n, long long id)
 {
 	static char buf[12] = {'\0'};
 	static char outfilePiece[256] = {'\0'};
@@ -204,7 +196,7 @@ void saveOneImageFeatures(struct feature* pfeatures, int n, Long64T id)
 		}
 		//fprintf( outfile, "%s_%d %f %f %f %f ",imagename, i, pfeatures[i].y, pfeatures[i].x,
 		//	pfeatures[i].scl, pfeatures[i].ori );
-		fwrite(&id, sizeof(Long64T), 1, outfile);
+		fwrite(&id, sizeof(long long), 1, outfile);
 		fwrite(&i, sizeof(int), 1, outfile);
 		fwrite(&(pfeatures[i].y), sizeof(double), 1, outfile);
 		fwrite(&(pfeatures[i].x), sizeof(double), 1, outfile);
@@ -231,7 +223,7 @@ void saveAndCloseOutFileHeader()
 	}
 
 	rewind(outfile);
-	fwrite(&allPointsNum, sizeof(Long64T), 1, outfile);
+	fwrite(&allPointsNum, sizeof(long long), 1, outfile);
 	fwrite(&LIMIT_POINTS_PER_FILE, sizeof(int), 1, outfile);
 	fclose(outfile);
 }

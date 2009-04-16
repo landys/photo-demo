@@ -121,10 +121,15 @@ namespace SiftTest
 
         }
 
+        private void testSift2()
+        {
+            ServiceApi.siftImage(@"E:\pic_skindetect\img_lib\20081838731781.jpg".ToCharArray(), @"E:\pic_skindetect\testPicFile".ToCharArray(), 0, 0.4, 1);
+        }
+
         static void Main(string[] args)
         {
             SiftTest st = new SiftTest();
-            st.testSift();
+            st.testSift2();
         }
     }
 }

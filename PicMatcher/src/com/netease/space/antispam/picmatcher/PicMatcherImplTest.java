@@ -13,7 +13,7 @@ public class PicMatcherImplTest {
                     .println(">java -jar PicMatcher.jar \"E:\\testpics\\heads\\1.jpg\" 100 1000");
             return;
         }
-        PicMatcherImpl matcher = new PicMatcherImpl("./data");
+        PicMatcherImpl matcher = new PicMatcherImpl("E:/projects/photodemo/codes/branches/TRY-refactor-jni-envelop/bin/Release/data");
         
         int times = Integer.parseInt(args[1]);
         int interval = Integer.parseInt(args[2]);
