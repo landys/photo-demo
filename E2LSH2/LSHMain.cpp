@@ -263,6 +263,12 @@ extern "C" DLL_EXPORT void query(char* queryFileStr, char* indexNameStr, char* o
 	optParameters.useUfunctions = false;
 	MAX_POINTS_IN_ONE_PASS = 500;
 
+	// NOTES: a stupid bug here forgetting to add these two lines, 
+	// and the progrem get wrong result when the bucketNum and 
+	// hashTableSize is bigger than the default value. GOD!!!
+	bucketNum = theBucketNum;
+	hashTableSize = bucketNum;
+
 	queryInner(queryFile, indexName, optParameters, outputFile);
 
 	printMemory("query end");
