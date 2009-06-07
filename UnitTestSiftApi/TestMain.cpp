@@ -368,6 +368,24 @@ void dsend(int count) {
 	}
 }
 
+void modifySiftFile(char* siftFile)
+{
+	char buf[1056];
+
+	FILE* fp = fopen(siftFile, "r+b");
+
+	fseek(fp, 12 + 1068 * 248 + 12, SEEK_SET);
+	fread(buf, sizeof(char), 1056, fp);
+	
+	for (int i=0; i<247; i++)
+	{
+		fseek(fp, 12 + 1068 * i + 12, SEEK_SET);
+		fwrite(buf, sizeof(char), 1056, fp);
+	}
+
+	fclose(fp);
+}
+
 
 int main()
 {
@@ -383,11 +401,25 @@ int main()
 	//puts("duff's device.");
 	//dsend(10);
 
-	outputIndexFile("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\index3", "E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\index3info.txt");
+	//outputIndexFile("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\index3", "E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\index3info.txt");
 	//printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\keypointIndex3",
 	//	"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\indexes\\keypointIndex3_text.txt");
 
 	//printKeypoints("E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\keypointMatch",
 	//	"E:\\projects\\photodemo\\codes\\branches\\TRY-refactor-jni-envelop\\bin\\Release\\data\\keypointMatch_text.txt");
+	
+	//printIndexInfo("e:/ndbc_test/d100.index");
+	//printIndexInfo("e:/ndbc_test/pictest.index");
+	//outputIndexFile("e:/ndbc_test/pictest.index", "e:/ndbc_test/pictest.index.dump");
+
+	//printIndexInfo("e:/ndbc_test/pictest2.index");
+	//outputIndexFile("e:/ndbc_test/pictest2.index", "e:/ndbc_test/pictest2.index.dump");
+
+	//modifySiftFile("E:/ndbc_test/pictestmod.sift");
+
+	printIndexInfo("e:/ndbc_test/pictest.index");
+	printIndexInfo("e:/ndbc_test/d100.index");
+	//outputIndexFile("e:/ndbc_test/d100.index", "e:/ndbc_test/d100.index.dump");
+
 	return 0;
 }

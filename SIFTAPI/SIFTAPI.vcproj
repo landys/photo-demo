@@ -20,7 +20,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="E:\projects\OpenCV\otherlibs\cvcam\include;E:\projects\opencv\cxcore\include;E:\projects\opencv\cv\include;E:\projects\opencv\otherlibs\highgui;E:\projects\opencv\cvaux\include;./include;&quot;E:\projects\ImageMagick-6.4.1-Q16\include&quot;"
+				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SIFTAPI_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,11 +62,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="CORE_RL_magick_.lib CORE_RL_Magick++_.lib X11.lib cv.lib highgui.lib cvaux.lib cxcore.lib cvcam.lib"
+				AdditionalDependencies=" cv.lib highgui.lib cvaux.lib cxcore.lib cvcam.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="E:\projects\OpenCV\lib;E:\projects\GnuWin32\lib;&quot;E:\projects\ImageMagick-6.4.1-Q16\lib&quot;"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
@@ -98,7 +98,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			EnableManagedIncrementalBuild="1"
@@ -141,7 +141,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies=" cv.lib highgui.lib cvaux.lib cxcore.lib cvcam.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="E:\projects\OpenCV\lib;E:\projects\GnuWin32\lib;&quot;E:\projects\ImageMagick-6.4.1-Q16\lib&quot;"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

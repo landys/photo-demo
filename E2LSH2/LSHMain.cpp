@@ -72,7 +72,7 @@ char sBuffer[512];
 // 保存到文件
 const int IGNORE_DIMENSION = 4;
 const int MAX_IN_ONE_BUCKET = 200;
-int MAX_POINTS_IN_ONE_PASS = 10000;
+int MAX_POINTS_IN_ONE_PASS = 400000;
 const int MAX_FILE_NAME_LENGTH = 256;
 const int DATASET_FILE_INFO_SIZE = MAX_FILE_NAME_LENGTH * sizeof(char) + sizeof(long long) + sizeof(int);
 const int MIN_BUCKET_NUM = 50000;

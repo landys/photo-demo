@@ -61,7 +61,8 @@ char outfileName[256] = {'\0'};	// the result file name
 // one point = long long+int+double(4)+double(128) = 1036 bytes.
 // the file should be less than 2G, so a file should contain less than 2072860 points.
 // the file may contains some other information about the data, so the limit of points is set as 2000000.
-const int LIMIT_POINTS_PER_FILE = 2000000;
+// for ntfs, 64G is ok.
+const int LIMIT_POINTS_PER_FILE = 64000000;
 
 int doSiftImage(const char* imagename, struct feature** ppfeatures, int img_dbl, double contr_thr, int n_max);
 void saveOneImageFeatures(struct feature* pfeatures, int n, long long id);
@@ -150,6 +151,13 @@ extern "C" DLL_EXPORT int siftImage(const char* imagename, const char* out_file_
 	
 	return n;
 
+}
+
+extern "C" DLL_EXPORT int siftFeature(const char* imagename, struct feature** fp, int img_dbl, double contr_thr, int n_max)
+{
+	int n = doSiftImage(imagename, fp, img_dbl, contr_thr, n_max);
+
+	return n;
 }
 
 /**

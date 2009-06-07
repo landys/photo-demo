@@ -20,7 +20,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)bin\$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="1"
 			ManagedExtensions="0"
@@ -219,6 +219,10 @@
 			</File>
 			<File
 				RelativePath=".\SelfTuning.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test.cpp"
 				>
 			</File>
 			<File

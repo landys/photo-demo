@@ -32,7 +32,7 @@ namespace PhotoDemo
         private static string matchImage = "";
 
         private static int indexCount = 0;
-        private static int MIN_MATCH = 10;
+        private static int MIN_MATCH = 0;
         private static Dictionary<long, string> fileNameMap;
 
         private int maxImageId;
