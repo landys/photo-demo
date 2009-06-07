@@ -46,12 +46,12 @@ int img_dbl = SIFT_IMG_DBL;
 int descr_width = SIFT_DESCR_WIDTH;
 int descr_hist_bins = SIFT_DESCR_HIST_BINS;
 //char* imagenamefile  = "e:\\imagename.txt";
-char* logFileName = "E:\\testpics\\test\\sift_larger_pruned2.log";
+//char* logFileName = "E:\\testpics\\test\\sift_larger_pruned2.log";
 
 /**
  * This interface provides SIFT algorithm implementation. Returns 1 if success, 0 if fail.
 **/
-extern "C" DLL_EXPORT int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr, int n_max)
+extern "C" DLL_EXPORT int showSift(const char* imagenamefile, const char* out_file_name, int img_dbl, double contr_thr, int n_max, const char* logFileName)
 {
 	IplImage* img;
 	struct feature* features;

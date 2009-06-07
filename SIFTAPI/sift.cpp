@@ -402,29 +402,43 @@ CvSeq* scale_space_extrema( IplImage*** dog_pyr, int octvs, int intvls,
 								if( ! is_too_edge_like( dog_pyr[ddata->octv][ddata->intvl],
 									ddata->r, ddata->c, curv_thr ) )
 								{
-									pq_features.push(pair<double, feature*>(calc_contr, feat));
+									if (pq_features.size() < n_max)
+									{
+										pq_features.push(pair<double, feature*>(calc_contr, feat));
+									}
+									else if (calc_contr > pq_features.top().first)
+									{
+										pair<double, feature*>* p = &pq_features.top();
+										ddata = feat_detection_data( p->second );
+										free(ddata);
+										free(p->second);
+										pq_features.pop();
+										pq_features.push(pair<double, feature*>(calc_contr, feat));
+									}
+									else
+									{
+										free( ddata );
+										free(feat);
+									}
 									//cvSeqPush( features, feat );
 								}
 								else
+								{
 									free( ddata );
+									free(feat);
+								}
 								//free( feat );
 							}
 						}
 
-	for (i=0;  i<n_max && !pq_features.empty(); ++i) {
+	for (i=0;  !pq_features.empty(); ++i) {
 		pair<double, feature*>* p = &pq_features.top();
 		cvSeqPush( features, p->second );
 		free (p->second);
 		//printf("%d=%lf, ", i, p->first);
 		pq_features.pop();
 	}
-	while (!pq_features.empty()) {
-		pair<double, feature*>* p = &pq_features.top();
-		ddata = feat_detection_data( p->second );
-		free(ddata);
-		free(p->second);
-		pq_features.pop();
-	}
+
 	return features;
 }
 
